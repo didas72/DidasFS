@@ -9,19 +9,25 @@
 #include "DidasFS_structures.h"
 #include "bitUtils.h"
 
+
+
 typedef struct DidasFS {
-	char ch;
-	char ch2;
+	FILE *device;
 } _DidasFS;
 
 
-//Internal function signatures
+//================================
+//= Internal function signatures =
+//================================
 static size_t DeterminePartitionSize(size_t dataSize, size_t *blockCount);
 static int ForceAllocateSpace(char *device, size_t size);
 static int InitEmptyPartition(char *device, size_t blockCount);
+static char ValidatePartitionHeader(DidasFS* fs);
 
 
-
+//============================
+//= Function implementations =
+//============================
 int InitFileSystem(char *device, size_t dataSize)
 {
 	size_t blockCount;
@@ -103,6 +109,59 @@ int InitEmptyPartition(char *device,  size_t blockCount)
 
 	if (written != sizeof(PartitionHeader))
 		return DFS_FAILED_DEVICE_WRITE;
+
+	return DFS_SUCCESS;
+}
+
+
+
+int OpenFileSystem(char *device, DidasFS **fsHandle)
+{
+	*fsHandle = NULL;
+	int err;
+
+	return DFS_NOT_IMPLEMENTED;
+
+	DidasFS* fs = malloc(sizeof(DidasFS));
+
+	if (!fs)
+		return DFS_FAILED_ALLOC;
+
+	fs->device = (device, "r+b");
+
+	if ((err = ValidatePartitionHeader(fs)))
+		return err;
+
+	*fsHandle = fs;
+	return DFS_SUCCESS;
+}
+
+char ValidatePartitionHeader(DidasFS* fs)
+{
+	uint32_t buff;
+	size_t read;
+	
+	//Check magic number
+	read = fread(&buff, sizeof(uint32_t), 1, fs->device);
+	if (read != sizeof(uint32_t))
+		return DFS_FAILED_DEVICE_READ;
+	if (buff != MAGIC_NUMBER)
+		return DFS_CORRUPTED_FS;
+
+	//Check first reserved
+	fseek(fs->device, 8, SEEK_SET);
+	read = fread(&buff, sizeof(uint32_t), 1, fs->device);
+	if (read != sizeof(uint32_t))
+		return DFS_FAILED_DEVICE_READ;
+	if (buff != 0)
+		return DFS_NVAL_FLAGS;
+
+	//Check second reserved
+	read = fread(&buff, sizeof(uint32_t), 1, fs->device);
+	if (read != sizeof(uint32_t))
+		return DFS_FAILED_DEVICE_READ;
+	if (buff != 0)
+		return DFS_NVAL_FLAGS;
 
 	return DFS_SUCCESS;
 }

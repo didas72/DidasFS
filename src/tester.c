@@ -1,11 +1,9 @@
 //tester.c - Holds entry point and tester code.
 
 #include "stdio.h"
-#include "DidasFS_structures.h"
+#include "DidasFS.h"
 
 int main()
 {
-	printf("%ld", sizeof(EntryPointer));
-
 	return 0;
 }
