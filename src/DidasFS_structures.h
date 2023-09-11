@@ -8,6 +8,13 @@
 #define BLOCK_SIZE 32768
 #define MAGIC_NUMBER 0x69DEAD69
 
+
+
+typedef struct DPartition {
+	FILE *device;
+	size_t rootBlockAddr;
+} _DPartition;
+
 typedef struct
 {
 	uint32_t magicNumber;

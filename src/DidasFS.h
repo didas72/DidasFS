@@ -1,4 +1,4 @@
-//DidasFS.h - Defines public interface of the project
+//DidasFS.h - Defines public interface of the file system
 
 #ifndef DIDASFS_H
 #define DIDASFS_H
@@ -18,12 +18,15 @@
 #define DFS_CORRUPTED_FS 8
 #define DFS_NVAL_FLAGS 9
 
-typedef struct DidasFS DidasFS;
+typedef struct DPartition DPartition;
+typedef struct DFileStream DFileStream;
 
 int InitFileSystem(char *device, size_t dataSize);
-int OpenFileSystem(char *device, DidasFS **fsHandle);
+int OpenFileSystem(char *device, DPartition **ptHandle);
 
-/*int OpenFile(char *path, DFile *file);
-int CloseFile(DFile *file);*/
-
+int OpenFile(DPartition *ptHandle, char *path, DFileStream **fs);
 #endif
+
+//TODO: Path combine, split, get name and such
+//TODO: OpenFile
+

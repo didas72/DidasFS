@@ -11,18 +11,13 @@
 
 
 
-typedef struct DidasFS {
-	FILE *device;
-} _DidasFS;
-
-
 //================================
 //= Internal function signatures =
 //================================
 static size_t DeterminePartitionSize(size_t dataSize, size_t *blockCount);
 static int ForceAllocateSpace(char *device, size_t size);
 static int InitEmptyPartition(char *device, size_t blockCount);
-static char ValidatePartitionHeader(DidasFS* fs);
+static char ValidatePartitionHeader(DPartition* pt);
 
 
 //============================
@@ -100,64 +95,79 @@ int InitEmptyPartition(char *device,  size_t blockCount)
 	if (file == NULL)
 		return DFS_FAILED_DEVICE_OPEN;
 
+
+	//Write header
 	PartitionHeader header = { .magicNumber = MAGIC_NUMBER,
 	.blockMapSize = blockCount >> 3 };
 
 	size_t written = fwrite(&header, sizeof(PartitionHeader), 1, file);
 
+	if (written != sizeof(PartitionHeader))
+	{
+		fclose(file);
+		return DFS_FAILED_DEVICE_WRITE;
+	}
+
 	fclose(file);
 
-	if (written != sizeof(PartitionHeader))
-		return DFS_FAILED_DEVICE_WRITE;
-
 	return DFS_SUCCESS;
 }
 
 
 
-int OpenFileSystem(char *device, DidasFS **fsHandle)
+int OpenFileSystem(char *device, DPartition **ptHandle)
 {
-	*fsHandle = NULL;
+	if (!ptHandle)
+		return DFS_NVAL_ARGS;
+
+	*ptHandle = NULL;
 	int err;
 
-	return DFS_NOT_IMPLEMENTED;
-
-	DidasFS* fs = malloc(sizeof(DidasFS));
-
-	if (!fs)
+	DPartition* pt = malloc(sizeof(DPartition));
+	if (!pt)
 		return DFS_FAILED_ALLOC;
 
-	fs->device = (device, "r+b");
+	pt->device = fopen(device, "r+b");
+	if (!pt->device)
+		return DFS_FAILED_DEVICE_OPEN; //TODO: Dealloc
 
-	if ((err = ValidatePartitionHeader(fs)))
-		return err;
+	if ((err = ValidatePartitionHeader(pt)))
+		return err; //TODO: Dealloc and close
 
-	*fsHandle = fs;
+	//Determine address of root block for fast access
+	uint32_t blockMapSize;
+	fseek(pt->device, 4, SEEK_SET);
+	size_t read = fread(&blockMapSize, sizeof(uint32_t), 1, pt->device);
+	if (read != sizeof(uint32_t))
+		return DFS_FAILED_DEVICE_READ; //TODO: Dealloc and close
+	pt->rootBlockAddr = 16 + (size_t)blockMapSize;
+
+	*ptHandle = pt;
 	return DFS_SUCCESS;
 }
 
-char ValidatePartitionHeader(DidasFS* fs)
+char ValidatePartitionHeader(DPartition* pt)
 {
 	uint32_t buff;
 	size_t read;
 	
 	//Check magic number
-	read = fread(&buff, sizeof(uint32_t), 1, fs->device);
+	read = fread(&buff, sizeof(uint32_t), 1, pt->device);
 	if (read != sizeof(uint32_t))
 		return DFS_FAILED_DEVICE_READ;
 	if (buff != MAGIC_NUMBER)
 		return DFS_CORRUPTED_FS;
 
 	//Check first reserved
-	fseek(fs->device, 8, SEEK_SET);
-	read = fread(&buff, sizeof(uint32_t), 1, fs->device);
+	fseek(pt->device, 8, SEEK_SET);
+	read = fread(&buff, sizeof(uint32_t), 1, pt->device);
 	if (read != sizeof(uint32_t))
 		return DFS_FAILED_DEVICE_READ;
 	if (buff != 0)
 		return DFS_NVAL_FLAGS;
 
 	//Check second reserved
-	read = fread(&buff, sizeof(uint32_t), 1, fs->device);
+	read = fread(&buff, sizeof(uint32_t), 1, pt->device);
 	if (read != sizeof(uint32_t))
 		return DFS_FAILED_DEVICE_READ;
 	if (buff != 0)
