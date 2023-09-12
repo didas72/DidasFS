@@ -2,13 +2,13 @@ CC=gcc
 C_FLAGS=-Wall -Wextra -g
 
 SRC=src
-OBJ=obj
-BIN=bin
+OBJ=build/obj
+BIN=build/bin
 
 OUTBIN=$(BIN)/main
 
 SRCS=$(wildcard $(SRC)/*.c)
-OBJS=$(patsubst $(SRC)/*.c, $(OBJ)/%.o, $(SRCS))
+OBJS=$(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SRCS))
 
 
 all:$(OUTBIN)
@@ -18,7 +18,7 @@ release: clean
 release: $(OUTBIN)
 
 run: $(OUTBIN)
-	.$(OUTBIN)
+	./$(OUTBIN)
 
 $(OUTBIN): $(OBJS)
 	@mkdir -p $(@D)

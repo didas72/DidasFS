@@ -27,6 +27,5 @@ int OpenFileSystem(char *device, DPartition **ptHandle);
 int OpenFile(DPartition *ptHandle, char *path, DFileStream **fs);
 #endif
 
-//TODO: Path combine, split, get name and such
 //TODO: OpenFile
 

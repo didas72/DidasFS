@@ -1,4 +1,4 @@
-//DidasFS.c - Implements public interface
+//DidasFS.c - Implements DidasFS.h
 
 #include <stdio.h>
 #include <stdint.h>
@@ -40,6 +40,42 @@ int InitFileSystem(char *device, size_t dataSize)
 	return DFS_SUCCESS;
 }
 
+int OpenFileSystem(char *device, DPartition **ptHandle)
+{
+	if (!ptHandle)
+		return DFS_NVAL_ARGS;
+
+	*ptHandle = NULL;
+	int err;
+
+	DPartition* pt = malloc(sizeof(DPartition));
+	if (!pt)
+		return DFS_FAILED_ALLOC;
+
+	pt->device = fopen(device, "r+b");
+	if (!pt->device)
+		return DFS_FAILED_DEVICE_OPEN; //TODO: Dealloc
+
+	if ((err = ValidatePartitionHeader(pt)))
+		return err; //TODO: Dealloc and close
+
+	//Determine address of root block for fast access
+	uint32_t blockMapSize;
+	fseek(pt->device, 4, SEEK_SET);
+	size_t read = fread(&blockMapSize, sizeof(uint32_t), 1, pt->device);
+	if (read != sizeof(uint32_t))
+		return DFS_FAILED_DEVICE_READ; //TODO: Dealloc and close
+	pt->rootBlockAddr = 16 + (size_t)blockMapSize;
+
+	*ptHandle = pt;
+	return DFS_SUCCESS;
+}
+
+
+
+//=====================================
+//= Internal function implementations =
+//=====================================
 size_t DeterminePartitionSize(size_t dataSize, size_t *blockCount)
 {
 	if (dataSize <= 0) return 0;
@@ -110,39 +146,6 @@ int InitEmptyPartition(char *device,  size_t blockCount)
 
 	fclose(file);
 
-	return DFS_SUCCESS;
-}
-
-
-
-int OpenFileSystem(char *device, DPartition **ptHandle)
-{
-	if (!ptHandle)
-		return DFS_NVAL_ARGS;
-
-	*ptHandle = NULL;
-	int err;
-
-	DPartition* pt = malloc(sizeof(DPartition));
-	if (!pt)
-		return DFS_FAILED_ALLOC;
-
-	pt->device = fopen(device, "r+b");
-	if (!pt->device)
-		return DFS_FAILED_DEVICE_OPEN; //TODO: Dealloc
-
-	if ((err = ValidatePartitionHeader(pt)))
-		return err; //TODO: Dealloc and close
-
-	//Determine address of root block for fast access
-	uint32_t blockMapSize;
-	fseek(pt->device, 4, SEEK_SET);
-	size_t read = fread(&blockMapSize, sizeof(uint32_t), 1, pt->device);
-	if (read != sizeof(uint32_t))
-		return DFS_FAILED_DEVICE_READ; //TODO: Dealloc and close
-	pt->rootBlockAddr = 16 + (size_t)blockMapSize;
-
-	*ptHandle = pt;
 	return DFS_SUCCESS;
 }
 
