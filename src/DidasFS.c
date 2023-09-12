@@ -8,6 +8,7 @@
 #include "DidasFS.h"
 #include "DidasFS_structures.h"
 #include "bitUtils.h"
+#include "errUtils.h"
 
 
 
@@ -42,35 +43,52 @@ int InitFileSystem(char *device, size_t dataSize)
 
 int OpenFileSystem(char *device, DPartition **ptHandle)
 {
-	if (!ptHandle)
-		return DFS_NVAL_ARGS;
+	ERR_NULL(ptHandle, DFS_NVAL_ARGS);
 
 	*ptHandle = NULL;
 	int err;
 
 	DPartition* pt = malloc(sizeof(DPartition));
-	if (!pt)
-		return DFS_FAILED_ALLOC;
+	ERR_NULL(pt, DFS_FAILED_ALLOC);
 
 	pt->device = fopen(device, "r+b");
-	if (!pt->device)
-		return DFS_FAILED_DEVICE_OPEN; //TODO: Dealloc
+	ERR_NULL_FREE1(pt->device, DFS_FAILED_DEVICE_OPEN, pt);
 
-	if ((err = ValidatePartitionHeader(pt)))
-		return err; //TODO: Dealloc and close
+	ERR_NZERO_CLEANUP_FREE1(err = ValidatePartitionHeader(pt), err,
+		fclose(pt->device), pt);
 
 	//Determine address of root block for fast access
 	uint32_t blockMapSize;
 	fseek(pt->device, 4, SEEK_SET);
 	size_t read = fread(&blockMapSize, sizeof(uint32_t), 1, pt->device);
-	if (read != sizeof(uint32_t))
-		return DFS_FAILED_DEVICE_READ; //TODO: Dealloc and close
+	ERR_IF_CLEANUP_FREE1(read != sizeof(uint32_t), DFS_FAILED_DEVICE_READ,
+		fclose(pt->device), pt);
 	pt->rootBlockAddr = 16 + (size_t)blockMapSize;
 
 	*ptHandle = pt;
 	return DFS_SUCCESS;
 }
 
+int OpenFile(DPartition *pt, char *path, DFileStream **fsHandle)
+{return DFS_NOT_IMPLEMENTED;
+	if (!pt)
+		return DFS_NVAL_ARGS;
+	if (!fsHandle)
+		return DFS_NVAL_ARGS;
+
+	*fsHandle = NULL;
+	int err;
+
+	DFileStream* fs = malloc(sizeof(DFileStream));
+	if (!fs)
+		return DFS_FAILED_ALLOC;
+
+	//TODO: Split path and search
+	//TODO: Set block addrs, set pos to 0
+
+	*fsHandle = fs;
+	return DFS_SUCCESS;
+}
 
 
 //=====================================

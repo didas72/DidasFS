@@ -11,7 +11,7 @@ SRCS=$(wildcard $(SRC)/*.c)
 OBJS=$(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SRCS))
 
 
-all:$(OUTBIN)
+all: $(OUTBIN)
 
 release: C_FLAGS=-Wall -Wextra -O2
 release: clean

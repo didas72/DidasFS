@@ -24,7 +24,7 @@ typedef struct DFileStream DFileStream;
 int InitFileSystem(char *device, size_t dataSize);
 int OpenFileSystem(char *device, DPartition **ptHandle);
 
-int OpenFile(DPartition *ptHandle, char *path, DFileStream **fs);
+int OpenFile(DPartition *pt, char *path, DFileStream **fsHandle);
 #endif
 
 //TODO: OpenFile

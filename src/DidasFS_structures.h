@@ -6,14 +6,22 @@
 #include <stdint.h>
 
 #define BLOCK_SIZE 32768
+#define BLOCK_DATA_SIZE 32736
 #define MAGIC_NUMBER 0x69DEAD69
 
 
 
-typedef struct DPartition {
+typedef struct DPartition
+{
 	FILE *device;
 	size_t rootBlockAddr;
 } _DPartition;
+
+typedef struct DFileStream
+{
+	size_t filePos;
+	size_t curBlockAddr, firstBlockAddr, lastBlockAddr;
+} _DFileStream;
 
 typedef struct
 {
