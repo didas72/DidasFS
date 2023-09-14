@@ -15,10 +15,13 @@
 //================================
 //= Internal function signatures =
 //================================
-static size_t DeterminePartitionSize(size_t dataSize, size_t *blockCount);
-static int ForceAllocateSpace(char *device, size_t size);
-static int InitEmptyPartition(char *device, size_t blockCount);
-static char ValidatePartitionHeader(DPartition* pt);
+size_t DeviceWrite(void *buffer, size_t len, DPartition *partition);
+size_t DeviceRead(void *buffer, size_t len, DPartition *partition);
+size_t DeterminePartitionSize(size_t dataSize, size_t *blockCount);
+int ForceAllocateSpace(char *device, size_t size);
+int InitEmptyPartition(char *device, size_t blockCount);
+char ValidatePartitionHeader(DPartition* pt);
+int FindFirstBlockAddress(DPartition* pt, char *path, size_t *address);
 
 
 //============================
@@ -54,7 +57,7 @@ int OpenFileSystem(char *device, DPartition **ptHandle)
 	pt->device = fopen(device, "r+b");
 	ERR_NULL_FREE1(pt->device, DFS_FAILED_DEVICE_OPEN, pt);
 
-	ERR_NZERO_CLEANUP_FREE1(err = ValidatePartitionHeader(pt), err,
+	ERR_NZERO_CLEANUP_FREE1((err = ValidatePartitionHeader(pt)), err,
 		fclose(pt->device), pt);
 
 	//Determine address of root block for fast access
@@ -94,6 +97,16 @@ int OpenFile(DPartition *pt, char *path, DFileStream **fsHandle)
 //=====================================
 //= Internal function implementations =
 //=====================================
+inline size_t DeviceWrite(void *buffer, size_t len, DPartition *partition)
+{
+	return fwrite(buffer, len, 1, partition->device);
+}
+
+inline size_t DeviceRead(void *buffer, size_t len, DPartition *partition)
+{
+	return fread(buffer, len, 1, partition->device);
+}
+
 size_t DeterminePartitionSize(size_t dataSize, size_t *blockCount)
 {
 	if (dataSize <= 0) return 0;
@@ -113,27 +126,24 @@ size_t DeterminePartitionSize(size_t dataSize, size_t *blockCount)
 
 int ForceAllocateSpace(char *device, size_t size)
 {
-	if (size % 4096 != 0)
-		return DFS_NVAL_ARGS;
+	ERR_NULL(device, DFS_NVAL_ARGS);
+	ERR_NULL(size, DFS_NVAL_ARGS);
+	ERR_IF(size & 0xFFF, DFS_NVAL_ARGS); //size % 4096
 
 	FILE* file = fopen(device, "w+b");
 
-	if (file == NULL)
-		return DFS_FAILED_DEVICE_OPEN;
+	ERR_NULL(file, DFS_FAILED_DEVICE_OPEN);
 
 	char buff[4096];
 	memset(buff, 0, sizeof(buff));
-	size_t times = size / 4096;
+	size_t times = size >> 12; //size / 4096;
 
 	while (times)
 	{
 		size_t written = fwrite(buff, 1, 4096, file);
 
-		if (written != 4096)
-		{
-			fclose(file);
-			return DFS_FAILED_SPACE_RESERVE;
-		}
+		ERR_IF_CLEANUP(written != 4096,
+			DFS_FAILED_SPACE_RESERVE, fclose(file));
 		times--;
 	}
 
@@ -142,13 +152,14 @@ int ForceAllocateSpace(char *device, size_t size)
 	return DFS_SUCCESS;
 }
 
-int InitEmptyPartition(char *device,  size_t blockCount)
+int InitEmptyPartition(char *device, size_t blockCount)
 {
+	ERR_NULL(device, DFS_NVAL_ARGS);
+	ERR_IF(blockCount == 0, DFS_NVAL_ARGS);
+
 	FILE* file = fopen(device, "r+b");
 
-	if (file == NULL)
-		return DFS_FAILED_DEVICE_OPEN;
-
+	ERR_NULL(file, DFS_NVAL_ARGS);
 
 	//Write header
 	PartitionHeader header = { .magicNumber = MAGIC_NUMBER,
@@ -156,11 +167,8 @@ int InitEmptyPartition(char *device,  size_t blockCount)
 
 	size_t written = fwrite(&header, sizeof(PartitionHeader), 1, file);
 
-	if (written != sizeof(PartitionHeader))
-	{
-		fclose(file);
-		return DFS_FAILED_DEVICE_WRITE;
-	}
+	ERR_IF_CLEANUP(written != sizeof(PartitionHeader),
+		DFS_FAILED_DEVICE_WRITE, fclose(file));
 
 	fclose(file);
 
@@ -169,30 +177,37 @@ int InitEmptyPartition(char *device,  size_t blockCount)
 
 char ValidatePartitionHeader(DPartition* pt)
 {
+	if (!pt)
+		return DFS_NVAL_ARGS;
+
 	uint32_t buff;
 	size_t read;
 	
 	//Check magic number
 	read = fread(&buff, sizeof(uint32_t), 1, pt->device);
-	if (read != sizeof(uint32_t))
-		return DFS_FAILED_DEVICE_READ;
-	if (buff != MAGIC_NUMBER)
-		return DFS_CORRUPTED_FS;
+	ERR_IF(read != sizeof(uint32_t), DFS_FAILED_DEVICE_READ);
+	ERR_IF(buff != MAGIC_NUMBER, DFS_CORRUPTED_FS);
 
 	//Check first reserved
 	fseek(pt->device, 8, SEEK_SET);
 	read = fread(&buff, sizeof(uint32_t), 1, pt->device);
-	if (read != sizeof(uint32_t))
-		return DFS_FAILED_DEVICE_READ;
-	if (buff != 0)
-		return DFS_NVAL_FLAGS;
+	ERR_IF(read != sizeof(uint32_t), DFS_FAILED_DEVICE_READ);
+	ERR_IF(buff != 0, DFS_CORRUPTED_FS);
 
 	//Check second reserved
 	read = fread(&buff, sizeof(uint32_t), 1, pt->device);
-	if (read != sizeof(uint32_t))
-		return DFS_FAILED_DEVICE_READ;
-	if (buff != 0)
-		return DFS_NVAL_FLAGS;
+	ERR_IF(read != sizeof(uint32_t), DFS_FAILED_DEVICE_READ);
+	ERR_IF(buff != 0, DFS_CORRUPTED_FS);
 
 	return DFS_SUCCESS;
+}
+
+int FindFirstBlockAddress(DPartition* pt, char *path, size_t *address)
+{return DFS_NOT_IMPLEMENTED;
+	ERR_NULL(pt, DFS_NVAL_ARGS);
+	ERR_NULL(path, DFS_NVAL_ARGS);
+	ERR_NULL(address, DFS_NVAL_ARGS);
+	
+	size_t curBlock = pt->rootBlockAddr;
+
 }

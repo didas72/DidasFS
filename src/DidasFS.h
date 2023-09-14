@@ -17,6 +17,7 @@
 #define DFS_FAILED_ALLOC 7
 #define DFS_CORRUPTED_FS 8
 #define DFS_NVAL_FLAGS 9
+#define DFS_PATH_NOT_FOUND 10
 
 typedef struct DPartition DPartition;
 typedef struct DFileStream DFileStream;
@@ -27,5 +28,7 @@ int OpenFileSystem(char *device, DPartition **ptHandle);
 int OpenFile(DPartition *pt, char *path, DFileStream **fsHandle);
 #endif
 
-//TODO: OpenFile
+//TODO: Finish OpenFile
+//TODO: Implement FindFirstBlockAddress
+//TODO: Replace all fread to work with 512 multiples for hardware devicess
 
