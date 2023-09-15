@@ -4,7 +4,7 @@
 #define DPATHS_H
 
 #define DIR_SEPARATOR_CH '/'
-#define MAX_PATH_NAME 28
+#define MAX_PATH_NAME 20
 #define MAX_PATH 1024
 
 /// @brief Returns a value that indicates whether ends in a directory separator
