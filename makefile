@@ -1,5 +1,5 @@
 CC=gcc
-C_FLAGS=-Wall -Wextra -g
+C_FLAGS=-Wall -Wextra -g -Wno-unknown-pragmas
 
 SRC=src
 OBJ=build/obj
@@ -13,7 +13,7 @@ OBJS=$(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SRCS))
 
 all: $(OUTBIN)
 
-release: C_FLAGS=-Wall -Wextra -O2
+release: C_FLAGS=-Wall -Wextra -O2 -Wno-unknown-pragmas
 release: clean
 release: $(OUTBIN)
 

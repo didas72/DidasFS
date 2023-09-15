@@ -18,6 +18,7 @@ typedef struct DPartition
 {
 	FILE *device;
 	size_t rootBlockAddr;
+	uint32_t blockCount;
 } _DPartition;
 
 typedef struct DFileStream

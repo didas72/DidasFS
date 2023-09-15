@@ -25,8 +25,15 @@ typedef struct DFileStream DFileStream;
 int InitFileSystem(const char *device, size_t dataSize);
 int OpenFileSystem(const char *device, DPartition **ptHandle);
 
+//int CreateDirectory(DPartition *pt, const char *path);
+//int CreateFile(DPartition *pt, const char *path);
 int OpenFile(DPartition *pt, const char *path, DFileStream **fsHandle);
 #endif
 
 //TODO: Replace all fread to work with 512 multiples for hardware devicess
 
+//TODO: Fix OpenFileSystem not accounting for padding in root block address calculation
+//TODO: Fix OpenFileSystem not setting blockCount
+//TODO: Implement FindFreeBlock
+//TODO: Implement AppendEntryToDir
+//TODO: Change Partition creation to use total size instead of (incorrect) data size

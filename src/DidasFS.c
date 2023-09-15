@@ -13,23 +13,35 @@
 
 
 
-//================================
-//= Internal function signatures =
-//================================
+//==================================
+//= Internal function declarations =
+//==================================
+#pragma region Device helpers
 int DeviceSeek(const int whence, const size_t offset, const DPartition *partition);
 size_t DeviceWrite(void *buffer, const size_t len, const DPartition *partition);
 size_t DeviceRead(void *buffer, const size_t len, const DPartition *partition);
+int ForceAllocateSpace(const char *device, size_t size);
+#pragma endregion
+#pragma region Block-Address Abstraction
 size_t BlockIndexToAddress(const DPartition *partition, const uint32_t index);
 size_t BlkIdxToAddr(const DPartition *partition, const uint32_t index)
 {
 	return BlockIndexToAddress(partition, index);
 }
+#pragma endregion
+#pragma region Code Naming
 size_t DeterminePartitionSize(size_t dataSize, size_t *blockCount);
-int ForceAllocateSpace(const char *device, size_t size);
 int InitEmptyPartition(const char *device, size_t blockCount);
-char ValidatePartitionHeader(const DPartition* pt);
-int FindEntryPointer(const DPartition* pt, const char *path, EntryPointer *entry);
-int FindEntryPointer_Recursion(const DPartition* pt, const uint32_t curBlock, const char *path, EntryPointer *entry);
+char ValidatePartitionHeader(const DPartition *pt);
+#pragma endregion
+#pragma region Block navigation
+int FindEntryPointer(const DPartition *pt, const char *path, EntryPointer *entry);
+int FindEntryPointer_Recursion(const DPartition *pt, const uint32_t curBlock, const char *path, EntryPointer *entry);
+int FindFreeBlock(const DPartition *pt, uint32_t *index);
+#pragma endregion
+#pragma region Block manipulation
+int AppendEntryToDir(const DPartition *pt, const char *path);
+#pragma endregion
 
 
 
@@ -109,6 +121,7 @@ int OpenFile(DPartition *pt, const char *path, DFileStream **fsHandle)
 //=====================================
 //= Internal function implementations =
 //=====================================
+#pragma region Device helpers
 inline int DeviceSeek(const int whence, const size_t offset, const DPartition *partition)
 {
 	return fseek(partition->device, offset, whence);
@@ -122,28 +135,6 @@ inline size_t DeviceWrite(void *buffer, const size_t len, const DPartition *part
 inline size_t DeviceRead(void *buffer, const size_t len, const DPartition *partition)
 {
 	return fread(buffer, len, 1, partition->device);
-}
-
-inline size_t BlockIndexToAddress(const DPartition *partition, const uint32_t index)
-{
-	return partition->rootBlockAddr + (size_t)index * BLOCK_SIZE;
-}
-
-size_t DeterminePartitionSize(size_t dataSize, size_t *blockCount)
-{
-	if (dataSize <= 0) return 0;
-	if (dataSize < BLOCK_SIZE) return 0;
-	if (dataSize % BLOCK_SIZE != 0) return 0;
-
-	size_t numBlocks = dataSize / BLOCK_SIZE;
-	size_t totalSize = sizeof(PartitionHeader)
-		+ (numBlocks >> 3) //block map
-		+ numBlocks * BLOCK_SIZE; //data blocks
-
-	if (blockCount)
-		*blockCount = numBlocks;
-
-	return totalSize;
 }
 
 int ForceAllocateSpace(const char *device, size_t size)
@@ -172,6 +163,39 @@ int ForceAllocateSpace(const char *device, size_t size)
 	fclose(file);
 
 	return DFS_SUCCESS;
+}
+#pragma endregion
+
+#pragma region Block-Address Abstraction
+inline size_t BlockIndexToAddress(const DPartition *partition, const uint32_t index)
+{
+	return partition->rootBlockAddr + (size_t)index * BLOCK_SIZE;
+}
+#pragma endregion
+
+#pragma region Code Naming
+size_t DeterminePartitionSize(size_t dataSize, size_t *blockCount)
+{
+	if (dataSize <= 0) return 0;
+	if (dataSize < BLOCK_SIZE) return 0;
+	if (dataSize % BLOCK_SIZE != 0) return 0;
+
+	size_t numBlocks = dataSize / BLOCK_SIZE;
+	size_t blockMapSize = numBlocks >> 3;
+
+	//SAP = sectorAlignPadding
+	size_t SAP = sizeof(PartitionHeader) + blockMapSize;
+	SAP &= 512 - 1; 
+	if (SAP) SAP = 512 - SAP;
+
+	size_t totalSize = sizeof(PartitionHeader)
+		+ blockMapSize + SAP
+		+ numBlocks * BLOCK_SIZE;
+
+	if (blockCount)
+		*blockCount = numBlocks;
+
+	return totalSize;
 }
 
 int InitEmptyPartition(const char *device, size_t blockCount)
@@ -202,28 +226,26 @@ char ValidatePartitionHeader(const DPartition* pt)
 	if (!pt)
 		return DFS_NVAL_ARGS;
 
-	uint32_t buff;
+	PartitionHeader buff;
 	size_t read;
 	
+	read = fread(&buff, sizeof(PartitionHeader), 1, pt->device);
+	ERR_IF(read != sizeof(PartitionHeader), DFS_FAILED_DEVICE_READ);
+
 	//Check magic number
-	read = fread(&buff, sizeof(uint32_t), 1, pt->device);
-	ERR_IF(read != sizeof(uint32_t), DFS_FAILED_DEVICE_READ);
-	ERR_IF(buff != MAGIC_NUMBER, DFS_CORRUPTED_FS);
+	ERR_IF(buff.magicNumber != MAGIC_NUMBER, DFS_CORRUPTED_FS);
 
-	//Check first reserved
-	fseek(pt->device, 8, SEEK_SET);
-	read = fread(&buff, sizeof(uint32_t), 1, pt->device);
-	ERR_IF(read != sizeof(uint32_t), DFS_FAILED_DEVICE_READ);
-	ERR_IF(buff != 0, DFS_CORRUPTED_FS);
+	//Check reserved
+	ERR_IF(buff.resvd != 0, DFS_CORRUPTED_FS);
 
-	//Check second reserved
-	read = fread(&buff, sizeof(uint32_t), 1, pt->device);
-	ERR_IF(read != sizeof(uint32_t), DFS_FAILED_DEVICE_READ);
-	ERR_IF(buff != 0, DFS_CORRUPTED_FS);
+	//Check blockCount will not overflow
+	ERR_IF(buff.blockMapSize > (~0u >> 3), DFS_CORRUPTED_FS);
 
 	return DFS_SUCCESS;
 }
+#pragma endregion
 
+#pragma region Block navigation
 int FindEntryPointer(const DPartition* pt, const char *path, EntryPointer *entry)
 {
 	//This is the 'intermediate' method
@@ -307,3 +329,9 @@ int FindEntryPointer_Recursion(const DPartition* pt, const uint32_t curBlock, co
 		}
 	}
 }
+
+int FindFreeBlock(const DPartition *pt, uint32_t *index)
+{return DFS_NOT_IMPLEMENTED;
+	//DeviceSeek();
+}
+#pragma endregion
