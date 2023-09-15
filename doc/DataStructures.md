@@ -36,8 +36,16 @@ Offset | Length | Type | Purpose
 -- | -- | -- | --
 0 | 8 | int | First block (0 is invalid)
 8 | 8 | int | Last block (0 is invalid)
-16 | 4 | N/A | Reserved for flags (zero out)
+16 | 2 | bits | Flags
+18 | 2 | N/A | Reserved
 20 | 28 | char[] | Name (pad ending with zeros)
 
 **Remark:** Total size = 48
+**Remark:** Name length = 28
+
+### Entry pointer flags
+Bit | Name | Meaning
+-- | -- | --
+0 | Dir | 0=File; 1=Directory
+1-15 | Res | Reserved, zero out
 

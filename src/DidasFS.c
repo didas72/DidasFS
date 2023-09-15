@@ -7,6 +7,7 @@
 
 #include "DidasFS.h"
 #include "DidasFS_structures.h"
+#include "DPaths.h"
 #include "bitUtils.h"
 #include "errUtils.h"
 
@@ -15,19 +16,20 @@
 //================================
 //= Internal function signatures =
 //================================
+inline int DeviceSeek(int whence, size_t offset, DPartition *partition);
 size_t DeviceWrite(void *buffer, size_t len, DPartition *partition);
 size_t DeviceRead(void *buffer, size_t len, DPartition *partition);
 size_t DeterminePartitionSize(size_t dataSize, size_t *blockCount);
-int ForceAllocateSpace(char *device, size_t size);
-int InitEmptyPartition(char *device, size_t blockCount);
+int ForceAllocateSpace(const char *device, size_t size);
+int InitEmptyPartition(const char *device, size_t blockCount);
 char ValidatePartitionHeader(DPartition* pt);
-int FindFirstBlockAddress(DPartition* pt, char *path, size_t *address);
+int FindFirstBlock(DPartition* pt, const char *path, size_t *address);
 
 
 //============================
 //= Function implementations =
 //============================
-int InitFileSystem(char *device, size_t dataSize)
+int InitFileSystem(const char *device, size_t dataSize)
 {
 	size_t blockCount;
 	size_t size = DeterminePartitionSize(dataSize, &blockCount);
@@ -44,7 +46,7 @@ int InitFileSystem(char *device, size_t dataSize)
 	return DFS_SUCCESS;
 }
 
-int OpenFileSystem(char *device, DPartition **ptHandle)
+int OpenFileSystem(const char *device, DPartition **ptHandle)
 {
 	ERR_NULL(ptHandle, DFS_NVAL_ARGS);
 
@@ -72,7 +74,7 @@ int OpenFileSystem(char *device, DPartition **ptHandle)
 	return DFS_SUCCESS;
 }
 
-int OpenFile(DPartition *pt, char *path, DFileStream **fsHandle)
+int OpenFile(DPartition *pt, const char *path, DFileStream **fsHandle)
 {return DFS_NOT_IMPLEMENTED;
 	if (!pt)
 		return DFS_NVAL_ARGS;
@@ -86,8 +88,8 @@ int OpenFile(DPartition *pt, char *path, DFileStream **fsHandle)
 	if (!fs)
 		return DFS_FAILED_ALLOC;
 
-	//TODO: Split path and search
-	//TODO: Set block addrs, set pos to 0
+	//TODO: Find address
+	//TODO: Set block address, set pos to 0
 
 	*fsHandle = fs;
 	return DFS_SUCCESS;
@@ -97,6 +99,11 @@ int OpenFile(DPartition *pt, char *path, DFileStream **fsHandle)
 //=====================================
 //= Internal function implementations =
 //=====================================
+inline int DeviceSeek(int whence, size_t offset, DPartition *partition)
+{
+	return fseek(partition->device, offset, whence);
+}
+
 inline size_t DeviceWrite(void *buffer, size_t len, DPartition *partition)
 {
 	return fwrite(buffer, len, 1, partition->device);
@@ -124,7 +131,7 @@ size_t DeterminePartitionSize(size_t dataSize, size_t *blockCount)
 	return totalSize;
 }
 
-int ForceAllocateSpace(char *device, size_t size)
+int ForceAllocateSpace(const char *device, size_t size)
 {
 	ERR_NULL(device, DFS_NVAL_ARGS);
 	ERR_NULL(size, DFS_NVAL_ARGS);
@@ -152,7 +159,7 @@ int ForceAllocateSpace(char *device, size_t size)
 	return DFS_SUCCESS;
 }
 
-int InitEmptyPartition(char *device, size_t blockCount)
+int InitEmptyPartition(const char *device, size_t blockCount)
 {
 	ERR_NULL(device, DFS_NVAL_ARGS);
 	ERR_IF(blockCount == 0, DFS_NVAL_ARGS);
@@ -202,7 +209,7 @@ char ValidatePartitionHeader(DPartition* pt)
 	return DFS_SUCCESS;
 }
 
-int FindFirstBlockAddress(DPartition* pt, char *path, size_t *address)
+int FindFirstBlock(DPartition* pt, const char *path, size_t *address)
 {return DFS_NOT_IMPLEMENTED;
 	ERR_NULL(pt, DFS_NVAL_ARGS);
 	ERR_NULL(path, DFS_NVAL_ARGS);
@@ -214,4 +221,51 @@ int FindFirstBlockAddress(DPartition* pt, char *path, size_t *address)
 	//Validates arguments and initiates recursion
 	//TODO: Implement recursion base
 	//TODO: Implement recursion stepping
+}
+
+int FindFirstBlock_Recursion(DPartition* pt, const size_t curBlock, const char *path, size_t *address)
+{
+	char root[MAX_PATH_NAME + 1];
+	char tail[MAX_PATH + 1];
+	char *searchName;
+	char searchForDir;
+	EntryPointer *entries = NULL;
+	BlockHeader curHeader = { 0 };
+
+	DPathGetRoot(root, path);
+	DPathGetTail(tail, path);
+
+	if (strlen(root)) //Not recursion base, looking for dir
+	{
+		searchForDir = ENTRY_FLAG_DIR;
+		searchName = root;
+	}
+	else //Recursion base, looking for file
+	{
+		searchForDir = 0;
+		searchName = tail;
+	}
+
+	//Read current block entries
+	DeviceSeek(SEEK_SET, curBlock, pt); //TODO: Handle errors
+	DeviceRead(&curHeader, sizeof(curHeader), pt); //TODO: Handle errors
+	DeviceRead(entries, ENTRIES_PER_BLOCK * sizeof(EntryPointer), pt); //TODO: Handle errors
+
+	//TODO: Possibly validate header usedSpace is multiple of sizeof(EntryPointer)
+	int validEntryCount = curHeader.usedSpace / sizeof(EntryPointer);
+
+	entries = malloc(ENTRIES_PER_BLOCK * sizeof(EntryPointer));
+	ERR_NULL(entries, DFS_FAILED_ALLOC);
+
+	//Search entries for dir/file
+	for (int i = 0; i < validEntryCount; i++)
+	{
+		//First filter out dir/files as needed
+		if (entries[i].flags & ENTRY_FLAG_DIR != searchForDir)
+			continue;
+
+		
+	}
+
+	//TODO: Free allocs
 }

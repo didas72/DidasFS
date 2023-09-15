@@ -22,10 +22,10 @@
 typedef struct DPartition DPartition;
 typedef struct DFileStream DFileStream;
 
-int InitFileSystem(char *device, size_t dataSize);
-int OpenFileSystem(char *device, DPartition **ptHandle);
+int InitFileSystem(const char *device, size_t dataSize);
+int OpenFileSystem(const char *device, DPartition **ptHandle);
 
-int OpenFile(DPartition *pt, char *path, DFileStream **fsHandle);
+int OpenFile(DPartition *pt, const char *path, DFileStream **fsHandle);
 #endif
 
 //TODO: Finish OpenFile

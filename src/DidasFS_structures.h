@@ -7,7 +7,10 @@
 
 #define BLOCK_SIZE 32768
 #define BLOCK_DATA_SIZE 32736
+#define ENTRIES_PER_BLOCK 682
 #define MAGIC_NUMBER 0x69DEAD69
+
+#define ENTRY_FLAG_DIR 1
 
 
 
@@ -43,7 +46,8 @@ typedef struct
 {
 	uint64_t firstBlock;
 	uint64_t lastBlock;
-	uint32_t resvd;
+	uint16_t flags;
+	uint16_t resvd;
 	char name[28];
 } __attribute__((packed)) EntryPointer;
 

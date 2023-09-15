@@ -12,15 +12,15 @@
 //================================
 //= Internal function signatures =
 //================================
-static char *GetLastNotTip(char *src, char ch);
-char *GetFirstNotTip(char *src, char ch);
+static const char *GetLastNotTip(const char *src, char ch);
+static const char *GetFirstNotTip(const char *src, char ch);
 
 
 
 //============================
 //= Function implementations =
 //============================
-char DPathEndsInSeparator(char *path)
+char DPathEndsInSeparator(const char *path)
 {
 	if (path == NULL || strlen(path) == 0)
 		return 0;
@@ -29,7 +29,7 @@ char DPathEndsInSeparator(char *path)
 
 }
 
-char *DPathCombine(char* destination, char *path1, char *path2)
+char *DPathCombine(char* destination, const char *path1, const char *path2)
 {
 	if (path1 == NULL && path2 == NULL)
 		strcpy(destination, "");
@@ -57,13 +57,13 @@ char *DPathCombine(char* destination, char *path1, char *path2)
 	return destination;
 }
 
-char *DPathGetParent(char *destination, char *path)
+char *DPathGetParent(char *destination, const char *path)
 {
 	if (path == NULL || strlen(path) == 0)
 		strcpy(destination, "");
 	else
 	{
-		char *sep = GetLastNotTip(path, DIR_SEPARATOR_CH);
+		const char *sep = GetLastNotTip(path, DIR_SEPARATOR_CH);
 
 		if (sep == NULL)
 		{
@@ -79,13 +79,13 @@ char *DPathGetParent(char *destination, char *path)
 	return destination;
 }
 
-char *DPathGetName(char *destination, char *path)
+char *DPathGetName(char *destination, const char *path)
 {
 	if (path == NULL || strlen(path) == 0)
 		strcpy(destination, "");
 	else
 	{
-		char *sep = GetLastNotTip(path, DIR_SEPARATOR_CH);
+		const char *sep = GetLastNotTip(path, DIR_SEPARATOR_CH);
 
 		if (sep == NULL)
 		{
@@ -103,13 +103,13 @@ char *DPathGetName(char *destination, char *path)
 	return destination;
 }
 
-char *DPathGetRoot(char *destination, char *path)
+char *DPathGetRoot(char *destination, const char *path)
 {
 	if (path == NULL || strlen(path) == 0)
 		strcpy(destination, "");
 	else
 	{
-		char *sep = GetFirstNotTip(path, DIR_SEPARATOR_CH);
+		const char *sep = GetFirstNotTip(path, DIR_SEPARATOR_CH);
 
 		if (sep == NULL)
 		{
@@ -129,13 +129,13 @@ char *DPathGetRoot(char *destination, char *path)
 	return destination;
 }
 
-char *DPathGetExeceptRoot(char *destination, char *path)
+char *DPathGetTail(char *destination, const char *path)
 {
 	if (path == NULL || strlen(path) == 0)
 		strcpy(destination, "");
 	else
 	{
-		char *sep = GetFirstNotTip(path, DIR_SEPARATOR_CH);
+		const char *sep = GetFirstNotTip(path, DIR_SEPARATOR_CH);
 
 		if (sep == NULL)
 		{
@@ -149,17 +149,19 @@ char *DPathGetExeceptRoot(char *destination, char *path)
 	return destination;
 }
 
+
+
 //=====================================
 //= Internal function implementations =
 //=====================================
-char *GetFirstNotTip(char *src, char ch)
+const char *GetFirstNotTip(const char *src, char ch)
 {
 	size_t len = strlen(src);
 
 	if (len < 2) //len 0 or 1 = empty or tip only
 		return NULL;
 
-	int head = 0;
+	size_t head = 0;
 
 	while (head < len)
 	{
@@ -172,14 +174,14 @@ char *GetFirstNotTip(char *src, char ch)
 	return NULL;
 }
 
-char *GetLastNotTip(char *src, char ch)
+const char *GetLastNotTip(const char *src, char ch)
 {
 	size_t len = strlen(src);
 
 	if (len < 2) //len 0 or 1 = empty or tip only
 		return NULL;
 
-	char *head = &src[len - 2];
+	const char *head = &src[len - 2];
 
 	while (head >= src)
 	{
