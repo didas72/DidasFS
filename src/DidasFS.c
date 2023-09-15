@@ -16,11 +16,11 @@
 //================================
 //= Internal function signatures =
 //================================
-inline int DeviceSeek(int whence, size_t offset, DPartition *partition);
-size_t DeviceWrite(void *buffer, size_t len, DPartition *partition);
-size_t DeviceRead(void *buffer, size_t len, DPartition *partition);
+int DeviceSeek(const int whence, const size_t offset, const DPartition *partition);
+size_t DeviceWrite(void *buffer, const size_t len, const DPartition *partition);
+size_t DeviceRead(void *buffer, const size_t len, const DPartition *partition);
 size_t BlockIndexToAddress(const DPartition *partition, const uint32_t index);
-inline size_t BlkIdxToAddr(const DPartition *partition, const uint32_t index)
+size_t BlkIdxToAddr(const DPartition *partition, const uint32_t index)
 {
 	return BlockIndexToAddress(partition, index);
 }
@@ -30,6 +30,7 @@ int InitEmptyPartition(const char *device, size_t blockCount);
 char ValidatePartitionHeader(const DPartition* pt);
 int FindEntryPointer(const DPartition* pt, const char *path, EntryPointer *entry);
 int FindEntryPointer_Recursion(const DPartition* pt, const uint32_t curBlock, const char *path, EntryPointer *entry);
+
 
 
 //============================
@@ -42,9 +43,9 @@ int InitFileSystem(const char *device, size_t dataSize)
 	size_t size = DeterminePartitionSize(dataSize, &blockCount);
 
 	ERR_NULL(size, DFS_NVAL_ARGS);
-	ERR_NZERO(err = ForceAllocateSpace(device, size), err);
+	ERR_NZERO((err = ForceAllocateSpace(device, size)), err);
 
-	ERR_NZERO(err = InitEmptyPartition(device, blockCount), err);
+	ERR_NZERO((err = InitEmptyPartition(device, blockCount)), err);
 
 	return DFS_SUCCESS;
 }
@@ -92,7 +93,7 @@ int OpenFile(DPartition *pt, const char *path, DFileStream **fsHandle)
 	if (!fs)
 		return DFS_FAILED_ALLOC;
 
-	ERR_NZERO_FREE1(err = FindEntryPointer(fs, path, &entry), err, fs);
+	ERR_NZERO_FREE1((err = FindEntryPointer(pt, path, &entry)), err, fs);
 	
 	fs->filePos = 0;
 	fs->curBlockIdx = 0;
@@ -108,17 +109,17 @@ int OpenFile(DPartition *pt, const char *path, DFileStream **fsHandle)
 //=====================================
 //= Internal function implementations =
 //=====================================
-inline int DeviceSeek(int whence, size_t offset, DPartition *partition)
+inline int DeviceSeek(const int whence, const size_t offset, const DPartition *partition)
 {
 	return fseek(partition->device, offset, whence);
 }
 
-inline size_t DeviceWrite(void *buffer, size_t len, DPartition *partition)
+inline size_t DeviceWrite(void *buffer, const size_t len, const DPartition *partition)
 {
 	return fwrite(buffer, len, 1, partition->device);
 }
 
-inline size_t DeviceRead(void *buffer, size_t len, DPartition *partition)
+inline size_t DeviceRead(void *buffer, const size_t len, const DPartition *partition)
 {
 	return fread(buffer, len, 1, partition->device);
 }
@@ -232,7 +233,7 @@ int FindEntryPointer(const DPartition* pt, const char *path, EntryPointer *entry
 	ERR_NULL(path, DFS_NVAL_ARGS);
 	ERR_NULL(entry, DFS_NVAL_ARGS);
 
-	return FindFirstBlock_Recursion(pt, 0, path, entry);
+	return FindEntryPointer_Recursion(pt, 0, path, entry);
 }
 
 int FindEntryPointer_Recursion(const DPartition* pt, const uint32_t curBlock, const char *path, EntryPointer *entry)
@@ -293,12 +294,12 @@ int FindEntryPointer_Recursion(const DPartition* pt, const uint32_t curBlock, co
 		if (!curHeader.nextBlock) //And there are no more blocks
 			return DFS_PATH_NOT_FOUND;
 		else //But there are more blocks
-			return FindFirstBlock_Recursion(pt, curHeader.nextBlock, path, index);
+			return FindEntryPointer_Recursion(pt, curHeader.nextBlock, path, entry);
 	}
 	else //Found dir/file
 	{
 		if (nextIdx && strlen(root)) //It's not final, continue call stack
-			return FindFirstBlock_Recursion(pt, nextIdx, tail, index);
+			return FindEntryPointer_Recursion(pt, nextIdx, tail, entry);
 		else //It's the requested dir/file, return index
 		{
 			*entry = foundEntry;

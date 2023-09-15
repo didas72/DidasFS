@@ -28,7 +28,5 @@ int OpenFileSystem(const char *device, DPartition **ptHandle);
 int OpenFile(DPartition *pt, const char *path, DFileStream **fsHandle);
 #endif
 
-//TODO: Finish OpenFile
-//TODO: Implement FindFirstBlockAddress
 //TODO: Replace all fread to work with 512 multiples for hardware devicess
 
