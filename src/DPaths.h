@@ -26,4 +26,7 @@ char *DPathGetParent(char *destination, char *path);
 /// @return Destination is returned
 char *DPathGetName(char *destination, char *path);
 
+char *DPathGetRoot(char *destination, char *path);
+char *DPathGetExeceptRoot(char *destination, char *path);
+
 #endif

@@ -210,4 +210,8 @@ int FindFirstBlockAddress(DPartition* pt, char *path, size_t *address)
 	
 	size_t curBlock = pt->rootBlockAddr;
 
+	//This is the 'intermediate' method
+	//Validates arguments and initiates recursion
+	//TODO: Implement recursion base
+	//TODO: Implement recursion stepping
 }
