@@ -12,6 +12,7 @@ OBJS=$(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SRCS))
 
 
 all: $(OUTBIN)
+build: $(OUTBIN)
 
 release: C_FLAGS=-Wall -Wextra -O2 -Wno-unknown-pragmas
 release: clean

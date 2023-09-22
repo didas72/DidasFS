@@ -4,21 +4,27 @@
 #define DIDASFS_STRUCTURES_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
+#define SECTOR_SIZE 512
 #define BLOCK_SIZE 32768
 #define BLOCK_DATA_SIZE 32736
 #define ENTRIES_PER_BLOCK 1023
-#define MAGIC_NUMBER 0x69DEAD69
+#define MAGIC_NUMBER 0x69ADDE69
 
 #define ENTRY_FLAG_DIR 1
 
 
+typedef struct BlockMap BlockMap;
 
+
+//"Public" logical representations
 typedef struct DPartition
 {
 	FILE *device;
 	size_t rootBlockAddr;
 	uint32_t blockCount;
+	BlockMap *blockMap;
 } _DPartition;
 
 typedef struct DFileStream
@@ -28,6 +34,17 @@ typedef struct DFileStream
 	uint16_t streamFlags, fileFlags;
 } _DFileStream;
 
+
+//"Private" logical representations
+typedef struct BlockMap
+{
+	size_t length;
+	uint8_t *map;
+	DPartition *host;
+} _BlockMap;
+
+
+//Physical representations
 typedef struct
 {
 	uint32_t magicNumber;
@@ -53,4 +70,11 @@ typedef struct
 } __attribute__((packed)) EntryPointer;
 
 
+//"Private" logical representation methods
+int LoadBlockMap(DPartition *host);
+int GetBlockUsed(DPartition *pt, uint32_t blockIndex, bool *used);
+int SetBlockUsed(DPartition *pt, uint32_t blockIndex, bool used);
+int FlushFullBlockMap(DPartition *pt);
+//int FlushBlockMapChanges(DPartition *pt);
+int DetroyBlockMap(DPartition *pt);
 #endif

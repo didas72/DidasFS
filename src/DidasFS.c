@@ -30,6 +30,7 @@ size_t BlkIdxToAddr(const DPartition *partition, const uint32_t index)
 }
 #pragma endregion
 #pragma region Code Naming
+size_t DetermineFirstBlockAddress(uint32_t blockMapSize);
 size_t DeterminePartitionSize(size_t dataSize, size_t *blockCount);
 int InitEmptyPartition(const char *device, size_t blockCount);
 char ValidatePartitionHeader(const DPartition *pt);
@@ -84,7 +85,13 @@ int OpenFileSystem(const char *device, DPartition **ptHandle)
 	size_t read = fread(&blockMapSize, sizeof(uint32_t), 1, pt->device);
 	ERR_IF_CLEANUP_FREE1(read != sizeof(uint32_t), DFS_FAILED_DEVICE_READ,
 		fclose(pt->device), pt);
-	pt->rootBlockAddr = 16 + (size_t)blockMapSize;
+
+	pt->rootBlockAddr = DetermineFirstBlockAddress(blockMapSize);
+	pt->blockCount = blockMapSize << 3;
+
+	err = LoadBlockMap(pt);
+
+	ERR_NZERO_CLEANUP_FREE1(err, err, fclose(pt->device), pt);
 
 	*ptHandle = pt;
 	return DFS_SUCCESS;
@@ -116,6 +123,87 @@ int OpenFile(DPartition *pt, const char *path, DFileStream **fsHandle)
 	*fsHandle = fs;
 	return DFS_SUCCESS;
 }
+
+
+
+//=======================================
+//= _structures methods implementations =
+//=======================================
+int LoadBlockMap(DPartition* host)
+{
+	ERR_NULL(host, DFS_NVAL_ARGS);
+
+	BlockMap *map = malloc(sizeof(BlockMap));
+
+	ERR_NULL(map, DFS_FAILED_ALLOC);
+
+	map->host = host;
+	map->length = host->blockCount >> 3;
+	map->map = malloc(map->length);
+
+	ERR_NULL_FREE1(map->map, DFS_FAILED_ALLOC, map);
+
+	size_t read = DeviceRead(map->map, map->length, host);
+
+	ERR_IF_FREE2(read != map->length, DFS_FAILED_DEVICE_READ, map->map, map);
+
+	host->blockMap = map;
+
+	return DFS_SUCCESS;
+}
+
+int GetBlockUsed(DPartition *pt, uint32_t blockIndex, bool *used)
+{
+	ERR_NULL(pt, DFS_NVAL_ARGS);
+	ERR_NULL(used, DFS_NVAL_ARGS);
+	ERR_IF(blockIndex >= pt->blockCount, DFS_NVAL_ARGS);
+
+	uint32_t offset = blockIndex & 0x7; 
+	uint32_t index = blockIndex & ~0x7;
+
+	*used = pt->blockMap->map[index] & (1 << offset);
+
+	return DFS_SUCCESS;
+}
+
+int SetBlockUsed(DPartition *pt, uint32_t blockIndex, bool used)
+{
+	ERR_NULL(pt, DFS_NVAL_ARGS);
+	ERR_IF(blockIndex >= pt->blockCount, DFS_NVAL_ARGS);
+
+	uint32_t offset = blockIndex & 0x7; 
+	uint32_t index = blockIndex & ~0x7;
+
+	if (used)
+		pt->blockMap->map[index] |= (1 << offset);
+	else
+		pt->blockMap->map[index] &= ~(1 << offset);
+
+	return DFS_SUCCESS;
+}
+
+int FlushFullBlockMap(DPartition *pt)
+{
+	ERR_NULL(pt, DFS_NVAL_ARGS);
+
+	DeviceSeek(SEEK_SET, sizeof(PartitionHeader), pt);
+	size_t written = DeviceWrite(pt->blockMap->map, pt->blockMap->length, pt);
+
+	ERR_IF(written != pt->blockMap->length, DFS_FAILED_DEVICE_WRITE);
+
+	return DFS_SUCCESS;
+}
+
+int DestroyBlockMap(DPartition *pt)
+{
+	ERR_NULL(pt, DFS_NVAL_ARGS);
+
+	free(pt->blockMap->map);
+	free(pt->blockMap);
+
+	return DFS_SUCCESS;
+}
+
 
 
 //=====================================
@@ -174,6 +262,14 @@ inline size_t BlockIndexToAddress(const DPartition *partition, const uint32_t in
 #pragma endregion
 
 #pragma region Code Naming
+size_t DetermineFirstBlockAddress(uint32_t blockMapSize)
+{
+	size_t withoutPad = (size_t)blockMapSize + sizeof(PartitionHeader);
+	size_t rem = withoutPad & (SECTOR_SIZE - 1);
+
+	return withoutPad + (rem ? SECTOR_SIZE - rem : 0);
+}
+
 size_t DeterminePartitionSize(size_t dataSize, size_t *blockCount)
 {
 	if (dataSize <= 0) return 0;
@@ -183,14 +279,10 @@ size_t DeterminePartitionSize(size_t dataSize, size_t *blockCount)
 	size_t numBlocks = dataSize / BLOCK_SIZE;
 	size_t blockMapSize = numBlocks >> 3;
 
-	//SAP = sectorAlignPadding
-	size_t SAP = sizeof(PartitionHeader) + blockMapSize;
-	SAP &= 512 - 1; 
-	if (SAP) SAP = 512 - SAP;
+	//DTS = DaTa Start
+	size_t DTS = DetermineFirstBlockAddress(blockMapSize);
 
-	size_t totalSize = sizeof(PartitionHeader)
-		+ blockMapSize + SAP
-		+ numBlocks * BLOCK_SIZE;
+	size_t totalSize = DTS + numBlocks * BLOCK_SIZE;
 
 	if (blockCount)
 		*blockCount = numBlocks;
@@ -332,6 +424,7 @@ int FindEntryPointer_Recursion(const DPartition* pt, const uint32_t curBlock, co
 
 int FindFreeBlock(const DPartition *pt, uint32_t *index)
 {return DFS_NOT_IMPLEMENTED;
-	//DeviceSeek();
+	(void)pt;
+	(void)index;
 }
 #pragma endregion
