@@ -97,6 +97,20 @@ int OpenFileSystem(const char *device, DPartition **ptHandle)
 	return DFS_SUCCESS;
 }
 
+int CloseFileSystem(DPartition *ptHandle)
+{
+	ERR_NULL(ptHandle, DFS_NVAL_ARGS);
+
+	int err;
+
+	ERR_NZERO((err = FlushFullBlockMap(ptHandle)), err);
+	ERR_NZERO((err = DestroyBlockMap(ptHandle)), err);
+	fclose(ptHandle->device);
+	free(ptHandle);
+
+	return DFS_SUCCESS;
+}
+
 int OpenFile(DPartition *pt, const char *path, DFileStream **fsHandle)
 {
 	if (!pt)

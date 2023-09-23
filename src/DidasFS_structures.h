@@ -76,5 +76,5 @@ int GetBlockUsed(DPartition *pt, uint32_t blockIndex, bool *used);
 int SetBlockUsed(DPartition *pt, uint32_t blockIndex, bool used);
 int FlushFullBlockMap(DPartition *pt);
 //int FlushBlockMapChanges(DPartition *pt);
-int DetroyBlockMap(DPartition *pt);
+int DestroyBlockMap(DPartition *pt);
 #endif
