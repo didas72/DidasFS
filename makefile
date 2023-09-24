@@ -31,3 +31,6 @@ $(OBJ)/%.o: $(SRC)/%.c
 
 clean:
 	$(RM) $(OBJ)/* $(BIN)/*
+
+loc:
+	scc -s lines --no-cocomo --no-gitignore -w --size-unit binary

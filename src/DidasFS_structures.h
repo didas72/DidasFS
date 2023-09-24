@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "DidasFS.h"
 
 #define SECTOR_SIZE 512
 #define BLOCK_SIZE 32768
@@ -15,10 +16,23 @@
 #define ENTRY_FLAG_DIR 1
 
 
-typedef struct BlockMap BlockMap;
+
+//==="Private" logical representations===
+typedef struct 
+{
+	size_t length;
+	uint8_t *map;
+	DPartition *host;
+} BlockMap;
+
+typedef struct
+{
+	uint32_t blockIndex;
+	uint32_t entryIndex;
+} EntryPointerLoc;
 
 
-//"Public" logical representations
+//==="Public" logical representations===
 typedef struct DPartition
 {
 	FILE *device;
@@ -29,22 +43,15 @@ typedef struct DPartition
 
 typedef struct DFileStream
 {
+	//Position in file
 	size_t filePos;
 	uint32_t curBlockIdx, firstBlockIdx, lastBlockIdx;
 	uint16_t streamFlags, fileFlags;
+	EntryPointerLoc entryLoc;
 } _DFileStream;
 
 
-//"Private" logical representations
-typedef struct BlockMap
-{
-	size_t length;
-	uint8_t *map;
-	DPartition *host;
-} _BlockMap;
-
-
-//Physical representations
+//===Physical representations===
 typedef struct
 {
 	uint32_t magicNumber;
@@ -72,9 +79,9 @@ typedef struct
 
 //"Private" logical representation methods
 int LoadBlockMap(DPartition *host);
-int GetBlockUsed(DPartition *pt, uint32_t blockIndex, bool *used);
-int SetBlockUsed(DPartition *pt, uint32_t blockIndex, bool used);
-int FlushFullBlockMap(DPartition *pt);
+int GetBlockUsed(const DPartition *pt, uint32_t blockIndex, bool *used);
+int SetBlockUsed(const DPartition *pt, uint32_t blockIndex, bool used);
+int FlushFullBlockMap(const DPartition *pt);
 //int FlushBlockMapChanges(DPartition *pt);
 int DestroyBlockMap(DPartition *pt);
 #endif

@@ -12,43 +12,46 @@
 #include "errUtils.h"
 
 
-
 //==================================
 //= Internal function declarations =
 //==================================
 #pragma region Device helpers
 int DeviceSeek(const int whence, const size_t offset, const DPartition *partition);
 size_t DeviceWrite(void *buffer, const size_t len, const DPartition *partition);
+size_t DeviceWriteAt(const size_t address, void *buffer, const size_t len, const DPartition *partition);
+size_t DeviceWriteAtBlk(const uint32_t index, void *buffer, const size_t len, const DPartition *partition);
+size_t DeviceWriteAtEntryLoc(const EntryPointerLoc entryLoc, void *buffer, const DPartition *partition);
 size_t DeviceRead(void *buffer, const size_t len, const DPartition *partition);
+size_t DeviceReadAt(const size_t address, void *buffer, const size_t len, const DPartition *partition);
+size_t DeviceReadAtBlk(const uint32_t index, void *buffer, const size_t len, const DPartition *partition);
+size_t DeviceReadAtEntryLoc(const EntryPointerLoc entryLoc, void *buffer, const DPartition *partition);
 int ForceAllocateSpace(const char *device, size_t size);
 #pragma endregion
-#pragma region Block-Address Abstraction
-size_t BlockIndexToAddress(const DPartition *partition, const uint32_t index);
-size_t BlkIdxToAddr(const DPartition *partition, const uint32_t index)
-{
-	return BlockIndexToAddress(partition, index);
-}
+#pragma region Block-Address abstraction
+size_t BlkIdxToAddr(const DPartition *partition, const uint32_t index);
+size_t EntryLocToAddr(const DPartition *partition, const EntryPointerLoc entryLoc);
 #pragma endregion
-#pragma region Code Naming
+#pragma region Code naming
 size_t DetermineFirstBlockAddress(uint32_t blockMapSize);
 size_t DeterminePartitionSize(size_t dataSize, size_t *blockCount);
 int InitEmptyPartition(const char *device, size_t blockCount);
-char ValidatePartitionHeader(const DPartition *pt);
+int ValidatePartitionHeader(const DPartition *pt);
 #pragma endregion
 #pragma region Block navigation
-int FindEntryPointer(const DPartition *pt, const char *path, EntryPointer *entry);
-int FindEntryPointer_Recursion(const DPartition *pt, const uint32_t curBlock, const char *path, EntryPointer *entry);
+int FindEntryPointer(const DPartition *pt, const char *path, EntryPointer *entry, EntryPointerLoc *entryLoc);
+int FindEntryPointer_Recursion(const DPartition *pt, const uint32_t curBlock, const char *path, EntryPointer *entry, EntryPointerLoc *entryLoc);
 int FindFreeBlock(const DPartition *pt, uint32_t *index);
 #pragma endregion
 #pragma region Block manipulation
-int AppendEntryToDir(const DPartition *pt, const char *path);
+int AppendBlockToFile(const DPartition *pt, const EntryPointerLoc entryLoc, uint32_t *newBlkIdx);
+int AppendEntryToDir(const DPartition *pt, const EntryPointerLoc dirEntryLoc, EntryPointer newEntry);
 #pragma endregion
-
 
 
 //============================
 //= Function implementations =
 //============================
+#pragma region Function implementations
 int InitFileSystem(const char *device, size_t dataSize)
 {
 	int err;
@@ -121,28 +124,31 @@ int OpenFile(DPartition *pt, const char *path, DFileStream **fsHandle)
 	*fsHandle = NULL;
 	int err;
 	EntryPointer entry;
+	EntryPointerLoc entryLoc;
 
 	DFileStream* fs = malloc(sizeof(DFileStream));
 	if (!fs)
 		return DFS_FAILED_ALLOC;
 
-	ERR_NZERO_FREE1((err = FindEntryPointer(pt, path, &entry)), err, fs);
+	ERR_NZERO_FREE1((err = FindEntryPointer(pt, path, &entry, &entryLoc)), err, fs);
 	
 	fs->filePos = 0;
 	fs->curBlockIdx = 0;
 	fs->firstBlockIdx = entry.firstBlock;
 	fs->lastBlockIdx = entry.lastBlock;
 	fs->fileFlags = entry.flags;
+	fs->entryLoc = entryLoc;
 
 	*fsHandle = fs;
 	return DFS_SUCCESS;
 }
+#pragma endregion
 
 
-
-//=======================================
-//= _structures methods implementations =
-//=======================================
+//======================================
+//= _structures method implementations =
+//======================================
+#pragma region _structures method implementations
 int LoadBlockMap(DPartition* host)
 {
 	ERR_NULL(host, DFS_NVAL_ARGS);
@@ -166,7 +172,7 @@ int LoadBlockMap(DPartition* host)
 	return DFS_SUCCESS;
 }
 
-int GetBlockUsed(DPartition *pt, uint32_t blockIndex, bool *used)
+int GetBlockUsed(const DPartition *pt, uint32_t blockIndex, bool *used)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS);
 	ERR_NULL(used, DFS_NVAL_ARGS);
@@ -180,7 +186,7 @@ int GetBlockUsed(DPartition *pt, uint32_t blockIndex, bool *used)
 	return DFS_SUCCESS;
 }
 
-int SetBlockUsed(DPartition *pt, uint32_t blockIndex, bool used)
+int SetBlockUsed(const DPartition *pt, uint32_t blockIndex, bool used)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS);
 	ERR_IF(blockIndex >= pt->blockCount, DFS_NVAL_ARGS);
@@ -196,7 +202,7 @@ int SetBlockUsed(DPartition *pt, uint32_t blockIndex, bool used)
 	return DFS_SUCCESS;
 }
 
-int FlushFullBlockMap(DPartition *pt)
+int FlushFullBlockMap(const DPartition *pt)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS);
 
@@ -217,7 +223,7 @@ int DestroyBlockMap(DPartition *pt)
 
 	return DFS_SUCCESS;
 }
-
+#pragma endregion
 
 
 //=====================================
@@ -233,10 +239,44 @@ inline size_t DeviceWrite(void *buffer, const size_t len, const DPartition *part
 {
 	return fwrite(buffer, len, 1, partition->device);
 }
+inline size_t DeviceWriteAt(const size_t address, void *buffer, const size_t len, const DPartition *partition)
+{
+	DeviceSeek(SEEK_SET, address, partition);
+	return DeviceWrite(buffer, len, partition);
+}
+inline size_t DeviceWriteAtBlk(const uint32_t index, void *buffer, const size_t len, const DPartition *partition)
+{
+	size_t addr = BlkIdxToAddr(partition, index);
+	DeviceSeek(SEEK_SET, addr, partition);
+	return DeviceWrite(buffer, len, partition);
+}
+inline size_t DeviceWriteAtEntryLoc(const EntryPointerLoc entryLoc, void *buffer, const DPartition *partition)
+{
+	size_t addr = EntryLocToAddr(partition, entryLoc);
+	DeviceSeek(SEEK_SET, addr, partition);
+	return DeviceWrite(buffer, sizeof(EntryPointer), partition);
+}
 
 inline size_t DeviceRead(void *buffer, const size_t len, const DPartition *partition)
 {
 	return fread(buffer, len, 1, partition->device);
+}
+inline size_t DeviceReadAt(const size_t address, void *buffer, const size_t len, const DPartition *partition)
+{
+	DeviceSeek(SEEK_SET, address, partition);
+	return DeviceRead(buffer, len, partition);
+}
+inline size_t DeviceReadAtBlk(const uint32_t index, void *buffer, const size_t len, const DPartition *partition)
+{
+	size_t addr = BlkIdxToAddr(partition, index);
+	DeviceSeek(SEEK_SET, addr, partition);
+	return DeviceRead(buffer, len, partition);
+}
+inline size_t DeviceReadAtEntryLoc(const EntryPointerLoc entryLoc, void *buffer, const DPartition *partition)
+{
+	size_t addr = EntryLocToAddr(partition, entryLoc);
+	DeviceSeek(SEEK_SET, addr, partition);
+	return DeviceRead(buffer, sizeof(EntryPointer), partition);
 }
 
 int ForceAllocateSpace(const char *device, size_t size)
@@ -246,10 +286,11 @@ int ForceAllocateSpace(const char *device, size_t size)
 	ERR_IF(size & 0xFFF, DFS_NVAL_ARGS); //size % 4096
 
 	FILE* file = fopen(device, "w+b");
+	char zero = 0;
 
 	ERR_NULL(file, DFS_FAILED_DEVICE_OPEN);
 
-	char buff[4096];
+	/*char buff[4096];
 	memset(buff, 0, sizeof(buff));
 	size_t times = size >> 12; //size / 4096;
 
@@ -260,22 +301,30 @@ int ForceAllocateSpace(const char *device, size_t size)
 		ERR_IF_CLEANUP(written != 4096,
 			DFS_FAILED_SPACE_RESERVE, fclose(file));
 		times--;
-	}
+	}*/
+
+	fseek(file, size - 1, SEEK_SET);
+	fwrite(&zero, 1, 1, file);
 
 	fclose(file);
 
 	return DFS_SUCCESS;
 }
 #pragma endregion
-
-#pragma region Block-Address Abstraction
-inline size_t BlockIndexToAddress(const DPartition *partition, const uint32_t index)
+#pragma region Block-Address abstraction
+size_t BlkIdxToAddr(const DPartition *partition, const uint32_t index)
 {
 	return partition->rootBlockAddr + (size_t)index * BLOCK_SIZE;
 }
-#pragma endregion
+size_t EntryLocToAddr(const DPartition *partition, const EntryPointerLoc entryLoc)
+{
+	size_t baseAddress = BlkIdxToAddr(partition, entryLoc.blockIndex);
+	size_t offset = sizeof(BlockHeader) + sizeof(EntryPointer) * entryLoc.entryIndex;
 
-#pragma region Code Naming
+	return baseAddress + offset;
+}
+#pragma endregion
+#pragma region Code naming
 size_t DetermineFirstBlockAddress(uint32_t blockMapSize)
 {
 	size_t withoutPad = (size_t)blockMapSize + sizeof(PartitionHeader);
@@ -327,7 +376,7 @@ int InitEmptyPartition(const char *device, size_t blockCount)
 	return DFS_SUCCESS;
 }
 
-char ValidatePartitionHeader(const DPartition* pt)
+int ValidatePartitionHeader(const DPartition* pt)
 {
 	if (!pt)
 		return DFS_NVAL_ARGS;
@@ -350,9 +399,8 @@ char ValidatePartitionHeader(const DPartition* pt)
 	return DFS_SUCCESS;
 }
 #pragma endregion
-
 #pragma region Block navigation
-int FindEntryPointer(const DPartition* pt, const char *path, EntryPointer *entry)
+int FindEntryPointer(const DPartition* pt, const char *path, EntryPointer *entry, EntryPointerLoc *entryLoc)
 {
 	//This is the 'intermediate' method
 	//Validates arguments and initiates recursion
@@ -361,28 +409,29 @@ int FindEntryPointer(const DPartition* pt, const char *path, EntryPointer *entry
 	ERR_NULL(path, DFS_NVAL_ARGS);
 	ERR_NULL(entry, DFS_NVAL_ARGS);
 
-	return FindEntryPointer_Recursion(pt, 0, path, entry);
+	return FindEntryPointer_Recursion(pt, 0, path, entry, entryLoc);
 }
 
-int FindEntryPointer_Recursion(const DPartition* pt, const uint32_t curBlock, const char *path, EntryPointer *entry)
+int FindEntryPointer_Recursion(const DPartition* pt, const uint32_t curBlock, const char *path, EntryPointer *entry, EntryPointerLoc *entryLoc)
 {
 	char root[MAX_PATH_NAME + 1];
 	char tail[MAX_PATH + 1];
 	char *searchName;
 	char searchForDir;
 	EntryPointer *entries = NULL, foundEntry = { 0 };
+	EntryPointerLoc location = { 0 };
 	BlockHeader curHeader = { 0 };
 	size_t nextIdx = 0;
 
 	DPathGetRoot(root, path);
 	DPathGetTail(tail, path);
 
-	if (strlen(root)) //Not recursion base, looking for dir
+	if (strlen(root)) //Looking for dir
 	{
 		searchForDir = ENTRY_FLAG_DIR;
 		searchName = root;
 	}
-	else //Recursion base, looking for file
+	else //Looking for file
 	{
 		searchForDir = 0;
 		searchName = tail;
@@ -412,6 +461,8 @@ int FindEntryPointer_Recursion(const DPartition* pt, const uint32_t curBlock, co
 
 		nextIdx = entries[i].firstBlock;
 		foundEntry = entries[i];
+		location.blockIndex = curBlock;
+		location.entryIndex = i;
 		break;
 	}
 
@@ -422,23 +473,140 @@ int FindEntryPointer_Recursion(const DPartition* pt, const uint32_t curBlock, co
 		if (!curHeader.nextBlock) //And there are no more blocks
 			return DFS_PATH_NOT_FOUND;
 		else //But there are more blocks
-			return FindEntryPointer_Recursion(pt, curHeader.nextBlock, path, entry);
+			return FindEntryPointer_Recursion(pt, curHeader.nextBlock, path, entry, entryLoc);
 	}
 	else //Found dir/file
 	{
-		if (nextIdx && strlen(root)) //It's not final, continue call stack
-			return FindEntryPointer_Recursion(pt, nextIdx, tail, entry);
+		if (nextIdx && strlen(root)) //It's not final, continue search on next block
+			return FindEntryPointer_Recursion(pt, nextIdx, tail, entry, entryLoc);
 		else //It's the requested dir/file, return index
 		{
 			*entry = foundEntry;
+			if (entryLoc)
+				*entryLoc = location;
 			return DFS_SUCCESS;
 		}
 	}
 }
 
 int FindFreeBlock(const DPartition *pt, uint32_t *index)
-{return DFS_NOT_IMPLEMENTED;
-	(void)pt;
-	(void)index;
+{
+	ERR_NULL(pt, DFS_NVAL_ARGS);
+	ERR_NULL(index, DFS_NVAL_ARGS);
+
+	int err;
+	uint32_t i;
+
+	//TODO: Optimize to use blockMap byte searches (8 bits at a time)
+	for (i = 0; i < pt->blockCount; i++)
+	{
+		bool used;
+		ERR_NZERO((err = GetBlockUsed(pt, i, &used)), err);
+
+		if (!used)
+		{
+			*index = i;
+			return DFS_SUCCESS;
+		}
+	}
+
+	return DFS_NO_SPACE;
+}
+#pragma endregion
+#pragma region Block manipulation
+int AppendBlockToFile(const DPartition *pt, const EntryPointerLoc entryLoc, uint32_t *newBlkIdx)
+{
+	ERR_NULL(pt, DFS_NVAL_ARGS);
+
+	int err; size_t read;
+	uint32_t newBlockIndex, oldBlockIndex;
+	EntryPointer entry;
+	BlockHeader newBlock, oldBlock;
+
+	//Find block and reserve
+	ERR_NZERO((err = FindFreeBlock(pt, &newBlockIndex)), err);
+	ERR_NZERO((err = SetBlockUsed(pt, newBlockIndex, true)), err);
+	ERR_NZERO((err = FlushFullBlockMap(pt)), err);
+
+	//Read entry pointer
+	read = DeviceReadAtEntryLoc(entryLoc, &entry, pt);
+	ERR_IF(read != sizeof(EntryPointer), DFS_FAILED_DEVICE_READ); //TODO: Revert block set to used
+
+	//Update last block index in entry
+	oldBlockIndex = entry.lastBlock;
+	entry.lastBlock = newBlockIndex;
+
+	//Flush changes
+	read = DeviceWriteAtEntryLoc(entryLoc, &entry, pt);
+	ERR_IF(read != sizeof(EntryPointer), DFS_FAILED_DEVICE_WRITE); //TODO: Revert block set to used
+
+	//Create new block header
+	newBlock.nextBlock = 0;
+	newBlock.prevBlock = oldBlockIndex;
+	newBlock.usedSpace = 0;
+	newBlock.resvd1 = 0;
+
+	//Store new block
+	read = DeviceWriteAtBlk(newBlockIndex, &newBlock, sizeof(BlockHeader), pt);
+	ERR_IF(read != sizeof(BlockHeader), DFS_FAILED_DEVICE_WRITE);
+
+	//Read old block
+	read = DeviceReadAtBlk(oldBlockIndex, &oldBlock, sizeof(BlockHeader), pt);
+	ERR_IF(read != sizeof(BlockHeader), DFS_FAILED_DEVICE_READ);
+
+	//Update index
+	oldBlock.nextBlock = newBlockIndex;
+
+	//Flush changes
+	read = DeviceWriteAtBlk(oldBlockIndex, &oldBlock, sizeof(BlockHeader), pt);
+	ERR_IF(read != sizeof(BlockHeader), DFS_FAILED_DEVICE_WRITE);
+
+	if (newBlkIdx)
+		*newBlkIdx = newBlockIndex;
+
+	return DFS_SUCCESS;
+}
+
+int AppendEntryToDir(const DPartition *pt, const EntryPointerLoc dirEntryLoc, EntryPointer newEntry)
+{
+	ERR_NULL(pt, DFS_NVAL_ARGS);
+
+	EntryPointer dirEntry;
+	BlockHeader dirBlock;
+	uint32_t blockIndex;
+	int err; size_t read;
+
+	//Read dir entry
+	read = DeviceReadAtEntryLoc(dirEntryLoc, &dirEntry, pt);
+	ERR_IF(read != sizeof(EntryPointer), DFS_FAILED_DEVICE_READ);
+
+	//Load last block
+	blockIndex = dirEntry.lastBlock;
+	read = DeviceReadAtBlk(blockIndex, &dirBlock, sizeof(BlockHeader), pt);
+	ERR_IF(read != sizeof(BlockHeader), DFS_FAILED_DEVICE_READ);
+
+	if (dirBlock.usedSpace + sizeof(EntryPointer) >= BLOCK_DATA_SIZE) //No free space
+	{
+		//Append block and update block index
+		ERR_NZERO((err = AppendBlockToFile(pt, dirEntryLoc, &blockIndex)), err);
+
+		//Load new block
+		read = DeviceReadAtBlk(blockIndex, &dirBlock, sizeof(BlockHeader), pt);
+		ERR_IF(read != sizeof(BlockHeader), DFS_FAILED_DEVICE_READ); //TODO: Revert changes
+	}
+
+	//Write new entry pointer
+	size_t addr = BlkIdxToAddr(pt, blockIndex) + dirBlock.usedSpace;
+	read = DeviceReadAt(addr, &newEntry, sizeof(EntryPointer), pt);
+	ERR_IF(read != sizeof(EntryPointer), DFS_FAILED_DEVICE_WRITE); //TODO: Revert changes
+
+	//Update block header
+	dirBlock.usedSpace += sizeof(EntryPointer);
+
+	//Flush header changes
+	read = DeviceReadAtBlk(blockIndex, &dirBlock, sizeof(BlockHeader), pt);
+	ERR_IF(read != sizeof(BlockHeader), DFS_FAILED_DEVICE_WRITE); //TODO: Revert changes
+
+	return DFS_SUCCESS;
 }
 #pragma endregion

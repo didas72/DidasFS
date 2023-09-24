@@ -6,7 +6,7 @@
 
 int main()
 {
-	char buff[32]; buff[31] = '\0';
+	/*char buff[32]; buff[31] = '\0';
 
 	printf("Combine\n");
 	printf("%s\n", DPathCombine(buff, "./Joel", "Leal"));
@@ -24,7 +24,7 @@ int main()
 	printf("%s\n", DPathGetName(buff, "./Joel/asmr/bdsm/"));
 	printf("%s\n", DPathGetName(buff, "./Joel/asmr"));
 	printf("%s\n", DPathGetName(buff, "Joel/Joel"));
-	printf("%s\n", DPathGetName(buff, "Joel"));
+	printf("%s\n", DPathGetName(buff, "Joel"));*/
 
 	return 0;
 }
