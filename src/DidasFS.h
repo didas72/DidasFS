@@ -30,10 +30,13 @@ int CloseFileSystem(DPartition *ptHandle);
 int CreateDirectory(DPartition *pt, const char *path);
 int CreateFile(DPartition *pt, const char *path);
 int OpenFile(DPartition *pt, const char *path, DFileStream **fsHandle);
+int CloseFile(DPartition *pt, DFileStream *fsHandle);
 #endif
 
 //TODO: Replace all fread to work with 512 multiples for hardware devicess
 
-//TODO: Implement CreateDirectory
-//TODO: Implement CreateFile
+//TODO: Update OpenFile to register file handle
+//TODO: Update OpenFile to check for already open handles
+//TODO: Update OpenFile to check file flags and match handle type
+//TODO: Update CloseFile to remove file handle
 //TODO: Change Partition creation to use total size instead of (incorrect) data size

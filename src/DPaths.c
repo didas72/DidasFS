@@ -9,11 +9,49 @@
 
 
 
-//================================
-//= Internal function signatures =
-//================================
-static const char *GetLastNotTip(const char *src, char ch);
-static const char *GetFirstNotTip(const char *src, char ch);
+//======================
+//= Internal functions =
+//======================
+static const char *GetFirstNotTip(const char *src, char ch)
+{
+	size_t len = strlen(src);
+
+	if (len < 2) //len 0 or 1 = empty or tip only
+		return NULL;
+
+	size_t head = 0;
+
+	while (head < len)
+	{
+		if (src[head] == ch)
+			return &src[head];
+
+		++head;
+	}
+
+	return NULL;
+}
+
+static const char *GetLastNotTip(const char *src, char ch)
+{
+	size_t len = strlen(src);
+
+	if (len < 2) //len 0 or 1 = empty or tip only
+		return NULL;
+
+	const char *head = &src[len - 2];
+
+	while (head >= src)
+	{
+		if (*head == ch)
+			return head;
+
+		--head;
+	}
+
+	return NULL;
+}
+
 
 
 
@@ -147,49 +185,4 @@ char *DPathGetTail(char *destination, const char *path)
 	}
 
 	return destination;
-}
-
-
-
-//=====================================
-//= Internal function implementations =
-//=====================================
-const char *GetFirstNotTip(const char *src, char ch)
-{
-	size_t len = strlen(src);
-
-	if (len < 2) //len 0 or 1 = empty or tip only
-		return NULL;
-
-	size_t head = 0;
-
-	while (head < len)
-	{
-		if (src[head] == ch)
-			return &src[head];
-
-		++head;
-	}
-
-	return NULL;
-}
-
-const char *GetLastNotTip(const char *src, char ch)
-{
-	size_t len = strlen(src);
-
-	if (len < 2) //len 0 or 1 = empty or tip only
-		return NULL;
-
-	const char *head = &src[len - 2];
-
-	while (head >= src)
-	{
-		if (*head == ch)
-			return head;
-
-		--head;
-	}
-
-	return NULL;
 }

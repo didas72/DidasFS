@@ -46,6 +46,9 @@ int FindFreeBlock(const DPartition *pt, uint32_t *index);
 int AppendBlockToFile(const DPartition *pt, const EntryPointerLoc entryLoc, uint32_t *newBlkIdx);
 int AppendEntryToDir(const DPartition *pt, const EntryPointerLoc dirEntryLoc, EntryPointer newEntry);
 #pragma endregion
+#pragma region File manipulation
+int CreateObject(DPartition *pt, const char *path, const uint16_t flags);
+#pragma endregion
 
 
 //============================
@@ -114,6 +117,16 @@ int CloseFileSystem(DPartition *ptHandle)
 	return DFS_SUCCESS;
 }
 
+int CreateDirectory(DPartition *pt, const char *path)
+{
+	return CreateObject(pt, path, ENTRY_FLAG_DIR | ENTRY_FLAG_READWRITE);
+}
+
+int CreateFile(DPartition *pt, const char *path)
+{
+	return CreateObject(pt, path, ENTRY_FLAG_FILE | ENTRY_FLAG_READWRITE);
+}
+
 int OpenFile(DPartition *pt, const char *path, DFileStream **fsHandle)
 {
 	if (!pt)
@@ -136,7 +149,7 @@ int OpenFile(DPartition *pt, const char *path, DFileStream **fsHandle)
 	fs->curBlockIdx = 0;
 	fs->firstBlockIdx = entry.firstBlock;
 	fs->lastBlockIdx = entry.lastBlock;
-	fs->fileFlags = entry.flags;
+	//fs->fileFlags = entry.flags;
 	fs->entryLoc = entryLoc;
 
 	*fsHandle = fs;
@@ -407,7 +420,6 @@ int FindEntryPointer(const DPartition* pt, const char *path, EntryPointer *entry
 
 	ERR_NULL(pt, DFS_NVAL_ARGS);
 	ERR_NULL(path, DFS_NVAL_ARGS);
-	ERR_NULL(entry, DFS_NVAL_ARGS);
 
 	return FindEntryPointer_Recursion(pt, 0, path, entry, entryLoc);
 }
@@ -481,7 +493,8 @@ int FindEntryPointer_Recursion(const DPartition* pt, const uint32_t curBlock, co
 			return FindEntryPointer_Recursion(pt, nextIdx, tail, entry, entryLoc);
 		else //It's the requested dir/file, return index
 		{
-			*entry = foundEntry;
+			if (entry)
+				*entry = foundEntry;
 			if (entryLoc)
 				*entryLoc = location;
 			return DFS_SUCCESS;
@@ -544,7 +557,7 @@ int AppendBlockToFile(const DPartition *pt, const EntryPointerLoc entryLoc, uint
 	newBlock.nextBlock = 0;
 	newBlock.prevBlock = oldBlockIndex;
 	newBlock.usedSpace = 0;
-	newBlock.resvd1 = 0;
+	newBlock.resvd = 0;
 
 	//Store new block
 	read = DeviceWriteAtBlk(newBlockIndex, &newBlock, sizeof(BlockHeader), pt);
@@ -606,6 +619,51 @@ int AppendEntryToDir(const DPartition *pt, const EntryPointerLoc dirEntryLoc, En
 	//Flush header changes
 	read = DeviceReadAtBlk(blockIndex, &dirBlock, sizeof(BlockHeader), pt);
 	ERR_IF(read != sizeof(BlockHeader), DFS_FAILED_DEVICE_WRITE); //TODO: Revert changes
+
+	return DFS_SUCCESS;
+}
+#pragma endregion
+#pragma region File manipulation
+int CreateObject(DPartition *pt, const char *path, const uint16_t flags)
+{
+	char parentDir[MAX_PATH + 1];
+	char name[MAX_PATH_NAME + 1];
+
+	int err;
+	EntryPointer newEntry = { 0 };
+	EntryPointerLoc parentLoc;
+	BlockHeader newBlock;
+	uint32_t newBlockIndex;
+
+	DPathGetParent(parentDir, path);
+	DPathGetName(name, path);
+
+	//Find parent dir
+	ERR_NZERO((err = FindEntryPointer(pt, parentDir, NULL, &parentLoc)), err);
+
+	//Find and reserve free block
+	ERR_NZERO((err = FindFreeBlock(pt, &newBlockIndex)), err);
+	ERR_NZERO((err = SetBlockUsed(pt, newBlockIndex, true)), err);
+	ERR_NZERO((err = FlushFullBlockMap(pt)), err);
+
+	//Create new entry
+	strncpy(newEntry.name, name, MAX_PATH_NAME);
+	newEntry.firstBlock = newBlockIndex;
+	newEntry.lastBlock = newBlockIndex;
+	newEntry.resvd = 0;
+	newEntry.flags = flags;
+
+	//Append entry to parent
+	ERR_NZERO((err = AppendEntryToDir(pt, parentLoc, newEntry)), err);
+
+	//Set new block header
+	newBlock.nextBlock = 0;
+	newBlock.prevBlock = 0;
+	newBlock.usedSpace = 0;
+	newBlock.resvd = 0;
+
+	//Flush changes
+	ERR_NZERO((err = DeviceReadAtBlk(newBlockIndex, &newBlock, sizeof(BlockHeader), pt)), err);
 
 	return DFS_SUCCESS;
 }

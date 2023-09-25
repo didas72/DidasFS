@@ -13,7 +13,19 @@
 #define ENTRIES_PER_BLOCK 1023
 #define MAGIC_NUMBER 0x69ADDE69
 
-#define ENTRY_FLAG_DIR 1
+#pragma region Entry flags
+#define ENTRY_FLAG_EMPTY 0
+#define ENTRY_FLAG_FILE 0x0
+#define ENTRY_FLAG_DIR 0x1
+#define ENTRY_FLAG_READWRITE 0x0
+#define ENTRY_FLAG_READONLY 0x2
+#pragma endregion
+
+#pragma region File stream flags
+#define FILESTREAM_FLAG_EMPTY 0
+#define FILESTREAM_FLAG_READ 0x1
+#define FILESTREAM_FLAG_WRITE 0x2
+#pragma endregion
 
 
 
@@ -46,7 +58,7 @@ typedef struct DFileStream
 	//Position in file
 	size_t filePos;
 	uint32_t curBlockIdx, firstBlockIdx, lastBlockIdx;
-	uint16_t streamFlags, fileFlags;
+	uint16_t streamFlags;
 	EntryPointerLoc entryLoc;
 } _DFileStream;
 
@@ -64,7 +76,7 @@ typedef struct
 	uint32_t prevBlock;
 	uint32_t nextBlock;
 	uint32_t usedSpace;
-	uint32_t resvd1;
+	uint32_t resvd;
 } __attribute__((packed)) BlockHeader;
 
 typedef struct 
