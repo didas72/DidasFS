@@ -29,14 +29,26 @@ int CloseFileSystem(DPartition *ptHandle);
 
 int CreateDirectory(DPartition *pt, const char *path);
 int CreateFile(DPartition *pt, const char *path);
+
 int OpenFile(DPartition *pt, const char *path, DFileStream **fsHandle);
-int CloseFile(DPartition *pt, DFileStream *fsHandle);
+int CloseFile(DPartition *pt, DFileStream *fs);
+
+int FileRead(void *buffer, size_t len, DFileStream *fs, size_t *read);
+int FileWrite(void *buffer, size_t len, DFileStream *fs, size_t *written);
 #endif
 
-//TODO: Replace all fread to work with 512 multiples for hardware devicess
+//TODO: Implement FileRead
 
+//TODO: Update DPartition to track open file handles
+//TODO: Update OpenFile to not allow opening of directories as folders
 //TODO: Update OpenFile to register file handle
 //TODO: Update OpenFile to check for already open handles
 //TODO: Update OpenFile to check file flags and match handle type
 //TODO: Update CloseFile to remove file handle
+
+//TODO: Make BlockMap changes buffered
+//TODO: Make reads/writes buffered
+
 //TODO: Change Partition creation to use total size instead of (incorrect) data size
+
+//TODO: Replace all fread to work with 512 multiples for hardware devices

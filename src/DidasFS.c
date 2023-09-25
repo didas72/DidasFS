@@ -29,6 +29,7 @@ int ForceAllocateSpace(const char *device, size_t size);
 #pragma endregion
 #pragma region Block-Address abstraction
 size_t BlkIdxToAddr(const DPartition *partition, const uint32_t index);
+size_t BlkOffToAddr(const DPartition *partition, const uint32_t index, const size_t offset);
 size_t EntryLocToAddr(const DPartition *partition, const EntryPointerLoc entryLoc);
 #pragma endregion
 #pragma region Code naming
@@ -48,6 +49,8 @@ int AppendEntryToDir(const DPartition *pt, const EntryPointerLoc dirEntryLoc, En
 #pragma endregion
 #pragma region File manipulation
 int CreateObject(DPartition *pt, const char *path, const uint16_t flags);
+
+int DetermineFileSize(DPartition *pt, const EntryPointer entry, size_t *size);
 #pragma endregion
 
 
@@ -129,10 +132,8 @@ int CreateFile(DPartition *pt, const char *path)
 
 int OpenFile(DPartition *pt, const char *path, DFileStream **fsHandle)
 {
-	if (!pt)
-		return DFS_NVAL_ARGS;
-	if (!fsHandle)
-		return DFS_NVAL_ARGS;
+	ERR_NULL(pt, DFS_NVAL_ARGS);
+	ERR_NULL(fsHandle, DFS_NVAL_ARGS);
 
 	*fsHandle = NULL;
 	int err;
@@ -140,19 +141,83 @@ int OpenFile(DPartition *pt, const char *path, DFileStream **fsHandle)
 	EntryPointerLoc entryLoc;
 
 	DFileStream* fs = malloc(sizeof(DFileStream));
-	if (!fs)
-		return DFS_FAILED_ALLOC;
+	ERR_NULL(fs, DFS_FAILED_ALLOC);
 
 	ERR_NZERO_FREE1((err = FindEntryPointer(pt, path, &entry, &entryLoc)), err, fs);
 	
+	ERR_NZERO_FREE1((err = DetermineFileSize(pt, entry, &fs->fileSize)), err, fs);
 	fs->filePos = 0;
 	fs->curBlockIdx = 0;
 	fs->firstBlockIdx = entry.firstBlock;
 	fs->lastBlockIdx = entry.lastBlock;
 	//fs->fileFlags = entry.flags;
 	fs->entryLoc = entryLoc;
+	fs->pt = pt;
 
 	*fsHandle = fs;
+	return DFS_SUCCESS;
+}
+
+int CloseFile(DPartition *pt, DFileStream *fs)
+{
+	ERR_NULL(pt, DFS_NVAL_ARGS);
+	ERR_NULL(fs, DFS_NVAL_ARGS);
+
+	free(fs);
+	
+	return DFS_SUCCESS;
+}
+
+//TODO: TEST TEST TEST. ALL CASES. Interrupted half way through and just spedrun finishing it
+int FileWrite(void *buffer, size_t len, DFileStream *fs, size_t *written)
+{
+	ERR_NULL(buffer, DFS_NVAL_ARGS);
+	ERR_NULL(fs, DFS_NVAL_ARGS);
+	ERR_IF(len == 0, DFS_NVAL_ARGS);
+
+	size_t bufferHead = 0;
+	BlockHeader curBlock;
+	int err;
+	
+	//Should work for both append and overwrite
+	while (bufferHead < len)
+	{
+		//Read cur block
+		err = DeviceReadAtBlk(fs->curBlockIdx, &curBlock, sizeof(BlockHeader), fs->pt);
+		ERR_NZERO(err, err); //TODO: Revert changes?
+
+		//Calculate metrics
+		size_t blockOffset = fs->filePos % BLOCK_DATA_SIZE;
+		size_t dataAddr = BlkOffToAddr(fs->pt, fs->curBlockIdx, blockOffset);
+		size_t curBlockMaxWrite = BLOCK_DATA_SIZE - blockOffset;
+		size_t pendingWrite = len - bufferHead;
+		size_t curBlockWrite = (curBlockMaxWrite < pendingWrite) ? curBlockMaxWrite : pendingWrite;
+		size_t finalNewDataInBlock = blockOffset + curBlockWrite;
+		size_t finalDataInBlock = (curBlock.usedSpace > finalNewDataInBlock) ? curBlock.usedSpace : finalNewDataInBlock;
+
+		if (finalNewDataInBlock > curBlock.usedSpace) //If grown
+		{
+			fs->fileSize += finalNewDataInBlock - curBlock.usedSpace;
+
+			//Update cur block
+			curBlock.usedSpace = finalDataInBlock;
+
+			//Flush block changes
+			err = DeviceWriteAtBlk(fs->curBlockIdx, &curBlock, sizeof(BlockHeader), fs->pt);
+			ERR_NZERO(err, err); //TODO: Revert changes?
+		}
+
+		//Flush data
+		err = DeviceWriteAt(dataAddr, &((char*)buffer)[bufferHead], curBlockWrite, fs->pt);
+		ERR_NZERO(err, err); //TODO: Revert changes?
+
+		//Update head
+		bufferHead += curBlockWrite;
+	}
+
+	if (written)
+		*written = bufferHead;
+
 	return DFS_SUCCESS;
 }
 #pragma endregion
@@ -328,6 +393,10 @@ int ForceAllocateSpace(const char *device, size_t size)
 size_t BlkIdxToAddr(const DPartition *partition, const uint32_t index)
 {
 	return partition->rootBlockAddr + (size_t)index * BLOCK_SIZE;
+}
+size_t BlkOffToAddr(const DPartition *partition, const uint32_t index, const size_t offset)
+{
+	return BlkIdxToAddr(partition, index) + sizeof(BlockHeader) + offset;
 }
 size_t EntryLocToAddr(const DPartition *partition, const EntryPointerLoc entryLoc)
 {
@@ -664,6 +733,30 @@ int CreateObject(DPartition *pt, const char *path, const uint16_t flags)
 
 	//Flush changes
 	ERR_NZERO((err = DeviceReadAtBlk(newBlockIndex, &newBlock, sizeof(BlockHeader), pt)), err);
+
+	return DFS_SUCCESS;
+}
+
+int DetermineFileSize(DPartition *pt, const EntryPointer entry, size_t *size)
+{
+	ERR_NULL(pt, DFS_NVAL_ARGS);
+	ERR_NULL(size, DFS_NVAL_ARGS);
+
+	size_t counter = 0;
+	BlockHeader curBlock;
+	uint32_t blockIndex = entry.firstBlock;
+	int err;
+
+	while (blockIndex) //First should always go through since there should be no entries with null/root block
+	{
+		err = DeviceReadAtBlk(blockIndex, &curBlock, sizeof(BlockHeader), pt);
+		ERR_NZERO(err, err);
+
+		counter += curBlock.usedSpace; //In theory all but last should be full
+		blockIndex = curBlock.nextBlock;
+	}
+	
+	*size = counter;
 
 	return DFS_SUCCESS;
 }

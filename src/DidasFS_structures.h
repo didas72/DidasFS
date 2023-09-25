@@ -57,9 +57,11 @@ typedef struct DFileStream
 {
 	//Position in file
 	size_t filePos;
+	size_t fileSize;
 	uint32_t curBlockIdx, firstBlockIdx, lastBlockIdx;
 	uint16_t streamFlags;
 	EntryPointerLoc entryLoc;
+	DPartition *pt;
 } _DFileStream;
 
 
