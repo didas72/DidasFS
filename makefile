@@ -50,7 +50,7 @@ $(OBJ)/tests/%.o: $(TEST)/%.c
 
 
 clean:
-	$(RM) -r $(OBJ)/* $(BIN)/*
+	$(RM) -r $(OBJ) $(BIN)
 
 loc:
 	scc -s lines --no-cocomo --no-gitignore -w --size-unit binary --exclude-ext md,makefile --exclude-dir tests/framework
