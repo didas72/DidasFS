@@ -1,7 +1,7 @@
 AR=ar
 AR_FLAGS=rcs
 CC=gcc
-C_FLAGS=-Wall -Wextra -g -Wno-unknown-pragmas
+C_FLAGS=-Wall -Wextra -ggdb -Wno-unknown-pragmas
 
 SRC=src
 TEST=tests
@@ -26,6 +26,8 @@ release: C_FLAGS=-Wall -Wextra -O2 -Wno-unknown-pragmas
 release: clean
 release: $(OUTBIN)
 
+
+
 $(OUTBIN): $(OBJS)
 	@mkdir -p $(@D)
 	$(AR) $(AR_FLAGS) $@ $(OBJS)
@@ -46,6 +48,11 @@ $(TESTBIN): $(OBJS) $(TOBJS)
 $(OBJ)/tests/%.o: $(TEST)/%.c
 	@mkdir -p $(@D)
 	$(CC) $(C_FLAGS) -c $< -o $@
+
+
+
+debug: $(TESTBIN)
+	gdb ./$(TESTBIN)
 
 
 

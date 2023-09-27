@@ -23,9 +23,9 @@
 typedef struct DPartition DPartition;
 typedef struct DFileStream DFileStream;
 
-int InitFileSystem(const char *device, size_t dataSize);
-int OpenFileSystem(const char *device, DPartition **ptHandle);
-int CloseFileSystem(DPartition *ptHandle);
+int InitPartition(const char *device, size_t dataSize);
+int OpenPartition(const char *device, DPartition **ptHandle);
+int ClosePartition(DPartition *ptHandle);
 
 int CreateDirectory(DPartition *pt, const char *path);
 int CreateFile(DPartition *pt, const char *path);

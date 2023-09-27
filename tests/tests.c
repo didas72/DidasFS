@@ -1,7 +1,11 @@
 //DPaths.c - Tests for DPath functions
 
 #include "framework/minunit.h"
+
+#include "../src/DidasFS.h"
 #include "../src/DPaths.h"
+
+//===Test framework stuff===
 
 MU_TEST(combine)
 {
@@ -40,10 +44,36 @@ MU_TEST_SUITE(dpath_all)
 	MU_RUN_TEST(get_name);
 }
 
+
+
+//===Hand testing stuff===
+void HandTest()
+{
+	DPartition *pt;
+	int err;
+
+	if ((err = InitPartition("./device.hex", 32768 * 32)))
+	{ printf("Error initting partition: %d.\n", err); return; }
+
+	if ((err = OpenPartition("./device.hex", &pt)))
+	{ printf("Error opening partition: %d.\n", err); return; }
+
+	if ((err = CreateFile(pt, "Cock & Ball Torture")))
+	{ printf("Error creating file: %d.\n", err); return; }
+
+	printf("Finished successfully.\n");
+}
+
+
+
 int main()
 {
+	//Test framework
 	MU_RUN_SUITE(dpath_all);
 	MU_REPORT();
+
+	printf("Hand tests:\n");
+	HandTest();
 	
 	return MU_EXIT_CODE;
 }
