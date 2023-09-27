@@ -37,6 +37,7 @@ int FileRead(void *buffer, size_t len, DFileStream *fs, size_t *read);
 int FileWrite(void *buffer, size_t len, DFileStream *fs, size_t *written);
 #endif
 
+//TODO: Fix FileWrite not growing files when needed
 //TODO: Implement FileRead
 
 //TODO: Update DPartition to track open file handles

@@ -37,6 +37,7 @@ typedef struct
 	DPartition *host;
 } BlockMap;
 
+//Set to -1, -1 for root
 typedef struct
 {
 	uint32_t blockIndex;
