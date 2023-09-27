@@ -50,7 +50,9 @@ MU_TEST_SUITE(dpath_all)
 void HandTest()
 {
 	DPartition *pt;
+	DFileStream *fs;
 	int err;
+	int data = 0x69696969;
 
 	if ((err = InitPartition("./device.hex", 32768 * 32)))
 	{ printf("Error initting partition: %d.\n", err); return; }
@@ -60,6 +62,12 @@ void HandTest()
 
 	if ((err = CreateFile(pt, "Cock & Ball Torture")))
 	{ printf("Error creating file: %d.\n", err); return; }
+
+	if ((err = OpenFile(pt, "Cock & Ball Torture", &fs)))
+	{ printf("Error opening file: %d.\n", err); return; }
+
+	if ((err = FileWrite(&data, 4, fs, NULL)))
+	{ printf("Error writing to file: %d.\n", err); return; }
 
 	printf("Finished successfully.\n");
 }

@@ -148,7 +148,7 @@ int OpenFile(DPartition *pt, const char *path, DFileStream **fsHandle)
 	
 	ERR_NZERO_FREE1((err = DetermineFileSize(pt, entry, &fs->fileSize)), err, fs, "Failed to determine file size.\n");
 	fs->filePos = 0;
-	fs->curBlockIdx = 0;
+	fs->curBlockIdx = entry.firstBlock;
 	fs->firstBlockIdx = entry.firstBlock;
 	fs->lastBlockIdx = entry.lastBlock;
 	//fs->fileFlags = entry.flags;
