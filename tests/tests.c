@@ -1,5 +1,7 @@
 //DPaths.c - Tests for DPath functions
 
+#include <stdlib.h>
+
 #include "framework/minunit.h"
 
 #include "../src/DidasFS.h"
@@ -52,7 +54,9 @@ void HandTest()
 	DPartition *pt;
 	DFileStream *fs;
 	int err;
-	int data = 0x69696969;
+	size_t size = (1 << 15) + 1024;
+	char *data = malloc(size);
+	memset(data, 0x69, size);
 
 	if ((err = InitPartition("./device.hex", 32768 * 32)))
 	{ printf("Error initting partition: %d.\n", err); return; }
@@ -66,7 +70,15 @@ void HandTest()
 	if ((err = OpenFile(pt, "Cock & Ball Torture", &fs)))
 	{ printf("Error opening file: %d.\n", err); return; }
 
-	if ((err = FileWrite(&data, 4, fs, NULL)))
+	if ((err = FileWrite(data, size, fs, NULL)))
+	{ printf("Error writing to file: %d.\n", err); return; }
+
+	memset(data, 0x42, size);
+
+	if ((err = FileWrite(data, size, fs, NULL)))
+	{ printf("Error writing to file: %d.\n", err); return; }
+
+	if ((err = CloseFile(pt, fs)))
 	{ printf("Error writing to file: %d.\n", err); return; }
 
 	printf("Finished successfully.\n");

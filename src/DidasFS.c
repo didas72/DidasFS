@@ -178,6 +178,7 @@ int FileWrite(void *buffer, size_t len, DFileStream *fs, size_t *written)
 
 	size_t bufferHead = 0, read;
 	BlockHeader curBlock;
+	int err;
 	
 	//Should work for both append and overwrite
 	while (bufferHead < len)
@@ -194,6 +195,11 @@ int FileWrite(void *buffer, size_t len, DFileStream *fs, size_t *written)
 		size_t curBlockWrite = (curBlockMaxWrite < pendingWrite) ? curBlockMaxWrite : pendingWrite;
 		size_t finalNewDataInBlock = blockOffset + curBlockWrite;
 		size_t finalDataInBlock = (curBlock.usedSpace > finalNewDataInBlock) ? curBlock.usedSpace : finalNewDataInBlock;
+
+		//TODO: Remove
+		printf("Appending data to block.\n"
+			"BlockOff: %ld ?=? Used space %d.\n", blockOffset, curBlock.usedSpace);
+		printf("curBlockMaxWrite: %ld min pendingWrite: %ld = curBlockWrite: %ld\n", curBlockMaxWrite, pendingWrite, curBlockWrite);
 
 		if (finalNewDataInBlock > curBlock.usedSpace) //If grown
 		{
@@ -213,6 +219,22 @@ int FileWrite(void *buffer, size_t len, DFileStream *fs, size_t *written)
 
 		//Update head
 		bufferHead += curBlockWrite;
+		fs->filePos += curBlockWrite;
+
+		//Advance to next block if needed
+		if (bufferHead < len)
+		{
+			fs->curBlockIdx = curBlock.nextBlock;
+
+			//Grow file if needed
+			if (!fs->curBlockIdx)
+			{
+				uint32_t newIndex;
+				err = AppendBlockToFile(fs->pt, fs->entryLoc, &newIndex);
+				ERR_NZERO(err, err, "Failed to grow file.\n");
+				fs->curBlockIdx = fs->lastBlockIdx = newIndex;
+			}
+		}
 	}
 
 	if (written)
