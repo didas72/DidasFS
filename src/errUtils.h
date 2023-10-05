@@ -18,6 +18,8 @@
 #define ERR_IF_CLEANUP 			ERR_NZERO_CLEANUP
 #define ERR_IF_CLEANUP_FREE1 	ERR_NZERO_CLEANUP_FREE1
 
+#define ERR(errCode, fmt, ...) { fprintf(stderr, fmt, ##__VA_ARGS__); return errCode; }
+
 #define ERR_NULL(errIfNull, errCode, fmt, ...) {\
 	if (!errIfNull) { fprintf(stderr, fmt, ##__VA_ARGS__); return errCode; } }
 #define ERR_NULL_FREE1(errIfNull, errCode, toFree1, fmt, ...) {\

@@ -31,14 +31,12 @@ int CreateDirectory(DPartition *pt, const char *path);
 int CreateFile(DPartition *pt, const char *path);
 
 int OpenFile(DPartition *pt, const char *path, DFileStream **fsHandle);
-int CloseFile(DPartition *pt, DFileStream *fs);
+int CloseFile(DFileStream *fs);
 
-int FileRead(void *buffer, size_t len, DFileStream *fs, size_t *read);
 int FileWrite(void *buffer, size_t len, DFileStream *fs, size_t *written);
+int FileRead(void *buffer, size_t len, DFileStream *fs, size_t *read);
 //TO_DEFINE: int FileSeek(size_t offset, DFileStream *fs);
 #endif
-
-//TODO: Implement FileRead
 
 //TODO: Update DPartition to track open file handles
 //TODO: Update OpenFile to not allow opening of directories as folders

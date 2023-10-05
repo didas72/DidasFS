@@ -76,10 +76,40 @@ void HandTest()
 	memset(data, 0x42, size);
 
 	if ((err = FileWrite(data, size, fs, NULL)))
-	{ printf("Error writing to file: %d.\n", err); return; }
+	{ printf("Error writing to file 2: %d.\n", err); return; }
 
-	if ((err = CloseFile(pt, fs)))
-	{ printf("Error writing to file: %d.\n", err); return; }
+	if ((err = CloseFile(fs)))
+	{ printf("Error closing file: %d.\n", err); return; }
+
+	if ((err = OpenFile(pt, "Cock & Ball Torture", &fs)))
+	{ printf("Error opening file 2: %d.\n", err); return; }
+
+	if ((err = FileRead(data, size, fs, NULL)))
+	{ printf("Error reading from file: %d.\n", err); return; }
+
+	for (size_t i = 0; i < size; i++)
+	{
+		if (data[i] != 0x69)
+		{
+			printf("ERR: Incorrect data, expected 0x69.\n");
+			break;
+		}
+	}
+
+	if ((err = FileRead(data, size, fs, NULL)))
+	{ printf("Error reading from file 2: %d.\n", err); return; }
+
+	for (size_t i = 0; i < size; i++)
+	{
+		if (data[i] != 0x42)
+		{
+			printf("ERR: Incorrect data, expected 0x42.\n");
+			break;
+		}
+	}
+
+	if ((err = CloseFile(fs)))
+	{ printf("Error closing file 2: %d.\n", err); return; }
 
 	printf("Finished successfully.\n");
 }

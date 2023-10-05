@@ -159,17 +159,17 @@ int OpenFile(DPartition *pt, const char *path, DFileStream **fsHandle)
 	return DFS_SUCCESS;
 }
 
-int CloseFile(DPartition *pt, DFileStream *fs)
+int CloseFile(DFileStream *fs)
 {
-	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
+
+	//Handle pt stuff with fs->pt
 
 	free(fs);
 	
 	return DFS_SUCCESS;
 }
 
-//TODO: TEST TEST TEST. ALL CASES. Interrupted half way through and just spedrun finishing it
 int FileWrite(void *buffer, size_t len, DFileStream *fs, size_t *written)
 {
 	ERR_NULL(buffer, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(buffer));
@@ -190,16 +190,11 @@ int FileWrite(void *buffer, size_t len, DFileStream *fs, size_t *written)
 		//Calculate metrics
 		size_t blockOffset = fs->filePos % BLOCK_DATA_SIZE;
 		size_t dataAddr = BlkOffToAddr(fs->pt, fs->curBlockIdx, blockOffset);
-		size_t curBlockMaxWrite = BLOCK_DATA_SIZE - blockOffset;
+		size_t maxWrite = BLOCK_DATA_SIZE - blockOffset;
 		size_t pendingWrite = len - bufferHead;
-		size_t curBlockWrite = (curBlockMaxWrite < pendingWrite) ? curBlockMaxWrite : pendingWrite;
+		size_t curBlockWrite = (maxWrite < pendingWrite) ? maxWrite : pendingWrite;
 		size_t finalNewDataInBlock = blockOffset + curBlockWrite;
 		size_t finalDataInBlock = (curBlock.usedSpace > finalNewDataInBlock) ? curBlock.usedSpace : finalNewDataInBlock;
-
-		//TODO: Remove
-		printf("Appending data to block.\n"
-			"BlockOff: %ld ?=? Used space %d.\n", blockOffset, curBlock.usedSpace);
-		printf("curBlockMaxWrite: %ld min pendingWrite: %ld = curBlockWrite: %ld\n", curBlockMaxWrite, pendingWrite, curBlockWrite);
 
 		if (finalNewDataInBlock > curBlock.usedSpace) //If grown
 		{
@@ -239,6 +234,57 @@ int FileWrite(void *buffer, size_t len, DFileStream *fs, size_t *written)
 
 	if (written)
 		*written = bufferHead;
+
+	return DFS_SUCCESS;
+}
+
+int FileRead(void *buffer, size_t len, DFileStream *fs, size_t *read)
+{
+	ERR_NULL(buffer, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(buffer));
+	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
+	ERR_IF(len == 0, DFS_NVAL_ARGS, "Argument 'len' must not be 0.\n");
+
+	size_t bufferHead = 0, readB;
+	BlockHeader curBlock;
+
+	while (bufferHead < len)
+	{
+		//Read cur block
+		readB = DeviceReadAtBlk(fs->curBlockIdx, &curBlock, sizeof(BlockHeader), fs->pt);
+		ERR_IF(readB != sizeof(BlockHeader), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL); //TODO: Revert changes?
+
+		//Calculate metrics
+		size_t blockOffset = fs->filePos % BLOCK_DATA_SIZE;
+		size_t dataAddr = BlkOffToAddr(fs->pt, fs->curBlockIdx, blockOffset);
+		size_t maxRead = BLOCK_DATA_SIZE - blockOffset;
+		size_t pendingRead = len - bufferHead;
+		size_t curBlockRead = (maxRead < pendingRead) ? maxRead : pendingRead;
+		
+		//Read data
+		readB = DeviceReadAt(dataAddr, &((char*)buffer)[bufferHead], curBlockRead, fs->pt);
+		ERR_NZERO(readB != curBlockRead, DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL); //TODO: Revert changes?
+	
+		//Update head
+		bufferHead += curBlockRead;
+		fs->filePos += curBlockRead;
+
+		//Advance to next block if needed
+		if (bufferHead < len)
+		{
+			fs->curBlockIdx = curBlock.nextBlock;
+
+			//Return early if file ended
+			if (!fs->curBlockIdx)
+			{
+				if (read)
+					*read = bufferHead;
+				return DFS_SUCCESS;
+			}
+		}
+	}
+
+	if (read)
+		*read = bufferHead;
 
 	return DFS_SUCCESS;
 }
