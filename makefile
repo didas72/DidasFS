@@ -2,6 +2,7 @@ AR=ar
 AR_FLAGS=rcs
 CC=gcc
 C_FLAGS=-Wall -Wextra -ggdb -Wno-unknown-pragmas
+VAL_FLAGS=--leak-check=full
 
 SRC=src
 TEST=tests
@@ -54,6 +55,8 @@ $(OBJ)/tests/%.o: $(TEST)/%.c
 debug: $(TESTBIN)
 	gdb ./$(TESTBIN)
 
+memleak: $(TESTBIN)
+	valgrind $(VAL_FLAGS) $(TESTBIN)
 
 
 clean:

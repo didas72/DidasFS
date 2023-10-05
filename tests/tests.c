@@ -111,7 +111,12 @@ void HandTest()
 	if ((err = CloseFile(fs)))
 	{ printf("Error closing file 2: %d.\n", err); return; }
 
+	if ((err = ClosePartition(pt)))
+	{ printf("Error closing partition: %d.\n", err); return; }
+
 	printf("Finished successfully.\n");
+
+	free(data);
 }
 
 
