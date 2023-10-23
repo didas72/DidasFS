@@ -1,6 +1,6 @@
-//DPaths.c - Implements DPaths.c
+//dPaths.c - Implements DPaths.c
 
-#include "DPaths.h"
+#include "dPaths.h"
 
 #include <stdlib.h>
 #include <string.h>

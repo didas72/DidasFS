@@ -1,11 +1,11 @@
-//DidasFS_structures.h - Defines internal structures
+//didasFS_structures.h - Defines internal structures
 
 #ifndef DIDASFS_STRUCTURES_H
 #define DIDASFS_STRUCTURES_H
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "DidasFS.h"
+#include "didasFS.h"
 
 #define SECTOR_SIZE 512
 #define BLOCK_SIZE 32768

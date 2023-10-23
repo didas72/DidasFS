@@ -1,4 +1,4 @@
-//DPaths.h - Defines public interface of path handling functions
+//dPaths.h - Defines public interface of path handling functions
 
 #ifndef DPATHS_H
 #define DPATHS_H

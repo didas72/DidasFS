@@ -4,8 +4,8 @@
 
 #include "framework/minunit.h"
 
-#include "../src/DidasFS.h"
-#include "../src/DPaths.h"
+#include "../src/didasFS.h"
+#include "../src/dPaths.h"
 
 //===Test framework stuff===
 

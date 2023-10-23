@@ -1,13 +1,13 @@
-//DidasFS.c - Implements DidasFS.h
+//didasFS.c - Implements DidasFS.h
 
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "DidasFS.h"
-#include "DidasFS_structures.h"
-#include "DPaths.h"
+#include "didasFS.h"
+#include "didasFS_structures.h"
+#include "dPaths.h"
 #include "bitUtils.h"
 #include "errUtils.h"
 
@@ -38,6 +38,7 @@ size_t DetermineFirstBlockAddress(uint32_t blockMapSize);
 size_t DeterminePartitionSize(size_t dataSize, size_t *blockCount);
 int InitEmptyPartition(const char *device, size_t blockCount);
 int ValidatePartitionHeader(const DPartition *pt);
+int SetStreamPosition(size_t position, DFileStream *fs);
 #pragma endregion
 #pragma region Block navigation
 int FindEntryPointer(const DPartition *pt, const char *path, EntryPointer *entry, EntryPointerLoc *entryLoc);
@@ -287,6 +288,14 @@ int FileRead(void *buffer, size_t len, DFileStream *fs, size_t *read)
 		*read = bufferHead;
 
 	return DFS_SUCCESS;
+}
+
+int FileSetPos(size_t pos, DFileStream *fs)
+{
+	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
+
+	//TODO: Consider 'inlining'
+	return SetStreamPosition(pos, fs);
 }
 #pragma endregion
 
@@ -545,6 +554,42 @@ int ValidatePartitionHeader(const DPartition* pt)
 
 	//Check blockCount will not overflow
 	ERR_IF(buff.blockMapSize > (~0u >> 3), DFS_CORRUPTED_FS, "Partition blockMapSize is too big.\n");
+
+	return DFS_SUCCESS;
+}
+
+int SetStreamPosition(size_t position, DFileStream *fs)
+{
+	ERR_IF(position > fs->fileSize, DFS_NVAL_SEEK, "Attempted to seek beyond file boundaries.");
+
+	size_t curPos = 0, left;
+	uint32_t curBlock = fs->firstBlockIdx;
+	BlockHeader curHeader;
+	size_t read;
+
+	while (curPos != position)
+	{
+		left = curPos - position;
+		read = DeviceReadAtBlk(curBlock, &curHeader, sizeof(BlockHeader), fs->pt);
+		ERR_IF(read != sizeof(BlockHeader), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
+
+		if (left >= BLOCK_DATA_SIZE) //Full block skip
+		{
+			if (curHeader.nextBlock == 0) //Last block in file
+				return DFS_NVAL_SEEK;
+
+			position += BLOCK_DATA_SIZE;
+			curBlock = curHeader.nextBlock;
+		}
+		else //Partial block advance
+		{
+			//No need to check within block usedSize, checked by first ERR_IF
+			position += left;
+		}
+	}
+
+	fs->curBlockIdx = curBlock;
+	fs->filePos = curPos;
 
 	return DFS_SUCCESS;
 }
