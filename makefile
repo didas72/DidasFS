@@ -8,6 +8,7 @@ SRC=src
 TEST=tests
 OBJ=build/obj
 BIN=build/bin
+DOC=doc
 
 OUTBIN=$(BIN)/main.a
 TESTBIN=$(BIN)/tester
@@ -17,6 +18,19 @@ OBJS=$(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SRCS))
 
 TSRCS=$(wildcard $(TEST)/*.c)
 TOBJS=$(patsubst $(TEST)/%.c, $(OBJ)/tests/%.o, $(TSRCS))
+
+
+.PHONY: all
+.PHONY: build
+.PHONY: built-tests
+.PHONY: test
+.PHONY: debug
+.PHONY: memleak
+.PHONY: release
+.PHONY: clean
+.PHONY: loc
+.PHONY: doc
+.PHONY: doc-clean
 
 
 all: $(OUTBIN)
@@ -64,3 +78,9 @@ clean:
 
 loc:
 	scc -s lines --no-cocomo --no-gitignore -w --size-unit binary --exclude-ext md,makefile --exclude-dir tests/framework
+
+doc:
+	doxygen Doxyfile
+
+clean-doc:
+	$(RM) -r $(DOC)/doxygen
