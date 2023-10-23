@@ -537,8 +537,7 @@ int InitEmptyPartition(const char *device, size_t blockCount)
 
 int ValidatePartitionHeader(const DPartition* pt)
 {
-	if (!pt)
-		return DFS_NVAL_ARGS;
+	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
 	PartitionHeader buff;
 	size_t read;
@@ -575,8 +574,7 @@ int SetStreamPosition(size_t position, DFileStream *fs)
 
 		if (left >= BLOCK_DATA_SIZE) //Full block skip
 		{
-			if (curHeader.nextBlock == 0) //Last block in file
-				return DFS_NVAL_SEEK;
+			//No need to check for next block, checked by first ERR_IF
 
 			position += BLOCK_DATA_SIZE;
 			curBlock = curHeader.nextBlock;
@@ -689,10 +687,9 @@ int FindEntryPointer_Recursion(const DPartition* pt, const uint32_t curBlock, co
 
 	if (!nextIdx) //Couldn't find dir/file in current block
 	{
-		if (!curHeader.nextBlock) //And there are no more blocks
-			return DFS_PATH_NOT_FOUND;
-		else //But there are more blocks
-			return FindEntryPointer_Recursion(pt, curHeader.nextBlock, path, entry, entryLoc);
+		ERR_IF(!curHeader.nextBlock, DFS_PATH_NOT_FOUND, "Could not find '%s' in '%s'.\n", searchName, path);
+
+		return FindEntryPointer_Recursion(pt, curHeader.nextBlock, path, entry, entryLoc);
 	}
 	else //Found dir/file
 	{
@@ -730,7 +727,7 @@ int FindFreeBlock(const DPartition *pt, uint32_t *index)
 		}
 	}
 
-	return DFS_NO_SPACE;
+	ERR(DFS_NO_SPACE, "Failed to allocate space for new block.\n");
 }
 #pragma endregion
 #pragma region Block manipulation
