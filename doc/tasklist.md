@@ -1,6 +1,6 @@
-//TODO list
+# TODO list
 
-DOCS: XML doc dPaths.h
+DOCS: Finish doxygen for dPaths.h
 
 REMINDER: Cleanup TODO in code
 

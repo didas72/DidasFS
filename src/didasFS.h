@@ -4,88 +4,40 @@
 #define DIDASFS_H
 
 //===Error codes===
-/**
- * @brief Function has not been (fully) implemented
- * 
- */
+///@brief Function has not been (fully) implemented
 #define DFS_NOT_IMPLEMENTED -1
-/**
- * @brief Function has performed the operation successfully
- * 
- */
+///@brief Function has performed the operation successfully
 #define DFS_SUCCESS 0
-/**
- * @brief Function failed for an unspecified reason
- * 
-*/
+///@brief Function failed for an unspecified reason
 #define DFS_FAIL 1
-/**
- * @brief Function was given invalid arguments
- * 
-*/
+///@brief Function was given invalid arguments
 #define DFS_NVAL_ARGS 2
-/**
- * @brief Function was unable to open the requested file/device
- * 
-*/
+///@brief Function was unable to open the requested file/device
 #define DFS_FAILED_DEVICE_OPEN 3
-/**
- * @brief Function failed to reserve the required file/device space
- * 
-*/
+///@brief Function failed to reserve the required file/device space
 #define DFS_FAILED_SPACE_RESERVE 4
-/**
- * @brief Function failed to write to the underlying file/device
- * 
-*/
+///@brief Function failed to write to the underlying file/device
 #define DFS_FAILED_DEVICE_WRITE 5
-/**
- * @brief Function failed to read from the underlying file/device
- * 
-*/
+///@brief Function failed to read from the underlying file/device
 #define DFS_FAILED_DEVICE_READ 6
-/**
- * @brief Function failed to allocate the required memory
- * 
-*/
+///@brief Function failed to allocate the required memory
 #define DFS_FAILED_ALLOC 7
-/**
- * @brief Function determined that the used partition is corrupted
- * 
-*/
+///@brief Function determined that the used partition is corrupted
 #define DFS_CORRUPTED_FS 8
-/**
- * @brief Function encountered invalid flags
- * 
-*/
+///@brief Function encountered invalid flags
 #define DFS_NVAL_FLAGS 9
-/**
- * @brief Function failed to find part of the requested path
- * 
-*/
+///@brief Function failed to find part of the requested path
 #define DFS_PATH_NOT_FOUND 10
-/**
- * @brief Function failed to allocate space in the partition
- * 
-*/
+///@brief Function failed to allocate space in the partition
 #define DFS_NO_SPACE 11
-/**
- * @brief Function received an invalid seek position
- * 
-*/
+///@brief Function received an invalid seek position
 #define DFS_NVAL_SEEK 12
 
 
 
-/**
- * @brief Represents a partition handle
- * 
- */
+///@brief Represents a partition handle
 typedef struct DPartition DPartition;
-/**
- * @brief Represents a file handle
- * 
- */
+///@brief Represents a file handle
 typedef struct DFileStream DFileStream;
 
 /**
