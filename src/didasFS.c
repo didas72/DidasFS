@@ -35,7 +35,8 @@ EntryPointerLoc GetRootLoc();
 #pragma endregion
 #pragma region Code naming
 size_t DetermineFirstBlockAddress(uint32_t blockMapSize);
-size_t DeterminePartitionSize(size_t dataSize, size_t *blockCount);
+size_t DetermineSizeFromBlockCount(size_t blockCount);
+size_t DetermineBlockCount(size_t maxSize, size_t *partitionSize);
 int InitEmptyPartition(const char *device, size_t blockCount);
 int ValidatePartitionHeader(const DPartition *pt);
 int SetStreamPosition(size_t position, DFileStream *fs);
@@ -60,13 +61,16 @@ int DetermineFileSize(DPartition *pt, const EntryPointer entry, size_t *size);
 //= Function implementations =
 //============================
 #pragma region Function implementations
-int InitPartition(const char *device, size_t dataSize)
+int InitPartition(const char *device, size_t totalSize)
 {
-	int err;
-	size_t blockCount;
-	size_t size = DeterminePartitionSize(dataSize, &blockCount);
+	ERR_NULL(device, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(device));
+	ERR_IF(totalSize == 0, DFS_NVAL_ARGS, "Argument 'totalSize' cannot be 0.");
 
-	ERR_NULL(size, DFS_NVAL_ARGS, "Invalid data size %ld.\n", dataSize);
+	int err;
+	size_t size;
+	size_t blockCount = DetermineBlockCount(totalSize, &size);
+
+	ERR_IF(size == 0, DFS_NVAL_ARGS, "Invalid data size %ld.\n", dataSize);
 	ERR_NZERO((err = ForceAllocateSpace(device, size)), err, "Failed to allocate space.\n");
 
 	ERR_NZERO((err = InitEmptyPartition(device, blockCount)), err, "Failed to init empty partition.\n");
@@ -486,24 +490,50 @@ size_t DetermineFirstBlockAddress(uint32_t blockMapSize)
 	return withoutPad + (rem ? SECTOR_SIZE - rem : 0);
 }
 
-size_t DeterminePartitionSize(size_t dataSize, size_t *blockCount)
+size_t DetermineSizeFromBlockCount(size_t blockCount)
 {
-	if (dataSize <= 0) return 0;
-	if (dataSize < BLOCK_SIZE) return 0;
-	if (dataSize % BLOCK_SIZE != 0) return 0;
-
-	size_t numBlocks = dataSize / BLOCK_SIZE;
-	size_t blockMapSize = numBlocks >> 3;
+	size_t blockMapSize = blockCount >> 3;
 
 	//DTS = DaTa Start
 	size_t DTS = DetermineFirstBlockAddress(blockMapSize);
 
-	size_t totalSize = DTS + numBlocks * BLOCK_SIZE;
+	return DTS + blockCount * BLOCK_SIZE;
+}
 
-	if (blockCount)
-		*blockCount = numBlocks;
+size_t DetermineBlockCount(size_t maxSize, size_t *partitionSize)
+{
+	size_t max = MAX_BLOCKS, min = 0;
+	size_t current = 0, totalSize = 0;
+	int iterCount = 0; //Iteration limiter, should not be needed
+	
+	while (iterCount < 64)
+	{
+		iterCount++;
 
-	return totalSize;
+		current = (min + max) >> 1;
+		totalSize = DetermineSizeFromBlockCount(current);
+
+		if (totalSize < maxSize)
+			min = current;
+		else if (totalSize > maxSize)
+			max = current;
+		else
+			goto return_value;
+
+		if (max - min <= 1)
+		{
+			current = min;
+			goto return_value;
+		}
+	}
+
+	return ~0;
+
+return_value:
+	if (partitionSize)
+		*partitionSize = DetermineSizeFromBlockCount(current);
+
+	return current;
 }
 
 int InitEmptyPartition(const char *device, size_t blockCount)

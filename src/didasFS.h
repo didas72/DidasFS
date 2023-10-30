@@ -47,7 +47,7 @@ typedef struct DFileStream DFileStream;
  * @param dataSize The size of the data space to allocate
  * @return int containing the error code for the operation
  */
-int InitPartition(const char *device, size_t dataSize);
+int InitPartition(const char *device, size_t totalSize);
 /**
  * @brief Opens an existing partition from a file/device
  * 

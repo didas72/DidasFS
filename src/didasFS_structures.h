@@ -12,6 +12,8 @@
 #define BLOCK_DATA_SIZE 32752
 #define ENTRIES_PER_BLOCK 1023
 #define MAGIC_NUMBER 0x69ADDE69
+#define MAX_BLOCKS 0xFFFFFFFF
+#define MAX_PARTITION_CAPACITY MAX_BLOCKS * BLOCK_DATA_SIZE
 
 #pragma region Entry flags
 #define ENTRY_FLAG_EMPTY 0
@@ -66,7 +68,7 @@ typedef struct DFileStream
 } _DFileStream;
 
 
-//===Physical representations===
+//==="Physical" representations===
 typedef struct
 {
 	uint32_t magicNumber;

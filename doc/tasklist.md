@@ -1,12 +1,12 @@
 # TODO list
 
+TEST: Partition sizing
+
 DOCS: Finish doxygen for dPaths.h
 
 REMINDER: Cleanup TODO in code
 
-FIX: Change Partition creation to use total size instead of (incorrect) data size
-
-FIX: Not testing fail states
+TEST: Not testing fail states
 
 ADD FEATURE: Implement ftell equivalent
 
