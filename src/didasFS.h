@@ -3,6 +3,10 @@
 #ifndef DIDASFS_H
 #define DIDASFS_H
 
+
+#include <stddef.h>
+
+
 //===Error codes===
 ///@brief Function has not been (fully) implemented
 #define DFS_NOT_IMPLEMENTED -1

@@ -3,6 +3,8 @@
 #ifndef DPATHS_H
 #define DPATHS_H
 
+#include <stdbool.h>
+
 #define DIR_SEPARATOR_CH '/'
 #define MAX_PATH_NAME 20
 #define MAX_PATH 1024
@@ -42,5 +44,6 @@ char *DPathGetName(char *destination, const char *path);
 
 char *DPathGetRoot(char *destination, const char *path);
 char *DPathGetTail(char *destination, const char *path);
+bool DPathIsEmpty(const char *path);
 
 #endif

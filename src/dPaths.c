@@ -186,3 +186,8 @@ char *DPathGetTail(char *destination, const char *path)
 
 	return destination;
 }
+
+bool DPathIsEmpty(const char* path)
+{
+	return !strlen(path);
+}

@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+
 #include "didasFS.h"
 
 #define SECTOR_SIZE 512
@@ -32,7 +33,7 @@
 
 
 //==="Private" logical representations===
-typedef struct 
+typedef struct
 {
 	size_t length;
 	uint8_t *map;

@@ -1,14 +1,21 @@
 # TODO list
 
-TEST: Partition sizing
-
 DOCS: Finish doxygen for dPaths.h
 
 REMINDER: Cleanup TODO in code
 
-TEST: Not testing fail states
+TEST: Fail conditions
+TEST: Partition sizing
 
-ADD FEATURE: Implement ftell equivalent
+ADD FEATURE: ftell equivalent
+ADD FEATURE: Delete file
+ADD FEATURE: Delete directory (recursive opt)
+ADD FEATURE: List files/directories
+ADD FEATURE: Exists file/directory
+ADD FEATURE: Copy file
+ADD FEATURE: Move dile/dir
+ADD FEATURE: Check total free space
+ADD FEATURE: Verify and cleanup
 
 ADD FEATURE: DPartition must track open file handles
 ADD FEATURE: OpenFile must not allow opening of directories as files
