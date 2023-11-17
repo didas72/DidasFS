@@ -58,33 +58,33 @@ void HandTest()
 	char *data = malloc(size);
 	memset(data, 0x69, size);
 
-	if ((err = InitPartition("./device.hex", 32768 * 32)))
+	if ((err = dpcreate("./device.hex", 32768 * 32)))
 	{ printf("Error initting partition: %d.\n", err); return; }
 
-	if ((err = OpenPartition("./device.hex", &pt)))
+	if ((err = dpopen("./device.hex", &pt)))
 	{ printf("Error opening partition: %d.\n", err); return; }
 
-	if ((err = CreateFile(pt, "Cock & Ball Torture")))
+	if ((err = dfcreate(pt, "Cock & Ball Torture")))
 	{ printf("Error creating file: %d.\n", err); return; }
 
-	if ((err = OpenFile(pt, "Cock & Ball Torture", &fs)))
+	if ((err = dfopen(pt, "Cock & Ball Torture", &fs)))
 	{ printf("Error opening file: %d.\n", err); return; }
 
-	if ((err = FileWrite(data, size, fs, NULL)))
+	if ((err = dfwrite(data, size, fs, NULL)))
 	{ printf("Error writing to file: %d.\n", err); return; }
 
 	memset(data, 0x42, size);
 
-	if ((err = FileWrite(data, size, fs, NULL)))
+	if ((err = dfwrite(data, size, fs, NULL)))
 	{ printf("Error writing to file 2: %d.\n", err); return; }
 
-	if ((err = CloseFile(fs)))
+	if ((err = dfclose(fs)))
 	{ printf("Error closing file: %d.\n", err); return; }
 
-	if ((err = OpenFile(pt, "Cock & Ball Torture", &fs)))
+	if ((err = dfopen(pt, "Cock & Ball Torture", &fs)))
 	{ printf("Error opening file 2: %d.\n", err); return; }
 
-	if ((err = FileRead(data, size, fs, NULL)))
+	if ((err = dfread(data, size, fs, NULL)))
 	{ printf("Error reading from file: %d.\n", err); return; }
 
 	for (size_t i = 0; i < size; i++)
@@ -96,7 +96,7 @@ void HandTest()
 		}
 	}
 
-	if ((err = FileRead(data, size, fs, NULL)))
+	if ((err = dfread(data, size, fs, NULL)))
 	{ printf("Error reading from file 2: %d.\n", err); return; }
 
 	for (size_t i = 0; i < size; i++)
@@ -108,10 +108,10 @@ void HandTest()
 		}
 	}
 
-	if ((err = CloseFile(fs)))
+	if ((err = dfclose(fs)))
 	{ printf("Error closing file 2: %d.\n", err); return; }
 
-	if ((err = ClosePartition(pt)))
+	if ((err = dpclose(pt)))
 	{ printf("Error closing partition: %d.\n", err); return; }
 
 	printf("Finished successfully.\n");

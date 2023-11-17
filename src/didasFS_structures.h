@@ -11,10 +11,10 @@
 #define SECTOR_SIZE 512
 #define BLOCK_SIZE 32768
 #define BLOCK_DATA_SIZE 32752
-#define ENTRIES_PER_BLOCK 1023
+#define ENTRIES_PER_BLK 1023
 #define MAGIC_NUMBER 0x69ADDE69
-#define MAX_BLOCKS 0xFFFFFFFF
-#define MAX_PARTITION_CAPACITY MAX_BLOCKS * BLOCK_DATA_SIZE
+#define MAX_BLKS 0xFFFFFFFF
+#define MAX_PARTITION_CAPACITY MAX_BLKS * BLOCK_DATA_SIZE
 
 #pragma region Entry flags
 #define ENTRY_FLAG_EMPTY 0
@@ -96,10 +96,10 @@ typedef struct
 
 
 //"Private" logical representation methods
-int LoadBlockMap(DPartition *host);
-int GetBlockUsed(const DPartition *pt, uint32_t blockIndex, bool *used);
-int SetBlockUsed(const DPartition *pt, uint32_t blockIndex, bool used);
-int FlushFullBlockMap(const DPartition *pt);
+int load_blk_map(DPartition *host);
+int get_blk_used(const DPartition *pt, uint32_t blockIndex, bool *used);
+int set_blk_used(const DPartition *pt, uint32_t blockIndex, bool used);
+int flush_full_blk_map(const DPartition *pt);
 //int FlushBlockMapChanges(DPartition *pt);
-int DestroyBlockMap(DPartition *pt);
+int destroy_blk_map(DPartition *pt);
 #endif
