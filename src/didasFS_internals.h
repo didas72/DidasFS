@@ -1,4 +1,4 @@
-//didasFS_internals.h - 
+//didasFS_internals.h - Declares functions for internal use to declutter didasFS.c
 
 #ifndef DIDASFS_INTERNALS_H
 #define DIDASFS_INTERNALS_H

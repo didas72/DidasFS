@@ -1,4 +1,4 @@
-//DPaths.c - Tests for DPath functions
+//DPaths.c - Tests
 
 #include <stdlib.h>
 
