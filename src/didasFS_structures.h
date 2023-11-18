@@ -51,7 +51,7 @@ typedef struct
 //==="Public" logical representations===
 typedef struct DPartition
 {
-	FILE *device;
+	int device;
 	size_t rootBlockAddr;
 	uint32_t blockCount;
 	BlockMap *blockMap;

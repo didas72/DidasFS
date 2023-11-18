@@ -30,3 +30,6 @@ PERFORMANCE: Remove system buffering
 REMINDER: Ensure flushes when closing streams (both in FS and in system)
 
 FIX: ?Needed? Replace all fread to work with 512 multiples for hardware devices
+
+IO interface: fopen, fread, fwrite, fclose, ftruncate, fsync (flush)
+Management interface: mkdir, rmdir, create (touch), rmfile (rm)

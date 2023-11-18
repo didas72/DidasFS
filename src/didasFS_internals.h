@@ -5,29 +5,30 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <unistd.h>
 
 #include "didasFS.h"
 #include "didasFS_structures.h"
 
-
-#pragma region Device helpers
-int device_seek(const int whence, const size_t offset, const DPartition *partition);
-size_t device_write(void *buffer, const size_t len, const DPartition *partition);
-size_t device_write_at(const size_t addr, void *buffer, const size_t len, const DPartition *partition);
-size_t device_write_at_blk(const uint32_t index, void *buffer, const size_t len, const DPartition *partition);
-size_t device_write_at_entry_loc(const EntryPointerLoc entryLoc, EntryPointer *buffer, const DPartition *partition);
-size_t device_read(void *buffer, const size_t len, const DPartition *partition);
-size_t device_read_at(const size_t addr, void *buffer, const size_t len, const DPartition *partition);
-size_t device_read_at_blk(const uint32_t index, void *buffer, const size_t len, const DPartition *partition);
-size_t device_read_at_entry_loc(const EntryPointerLoc entryLoc, void *buffer, const DPartition *partition);
-int force_allocate_space(const char *device, size_t size);
-#pragma endregion
 
 #pragma region Block-Address abstraction
 size_t blk_idx_to_addr(const DPartition *partition, const uint32_t index);
 size_t blk_off_to_addr(const DPartition *partition, const uint32_t index, const size_t offset);
 size_t entry_loc_to_addr(const DPartition *partition, const EntryPointerLoc entryLoc);
 EntryPointerLoc get_root_loc();
+#pragma endregion
+
+#pragma region Device helpers
+int device_seek(const int whence, const size_t offset, const DPartition *partition);
+ssize_t device_write(void *buffer, const size_t len, const DPartition *partition);
+ssize_t device_write_at(const size_t addr, void *buffer, const size_t len, const DPartition *partition);
+ssize_t device_write_at_blk(const uint32_t index, void *buffer, const size_t len, const DPartition *partition);
+ssize_t device_write_at_entry_loc(const EntryPointerLoc entryLoc, EntryPointer *buffer, const DPartition *partition);
+ssize_t device_read(void *buffer, const size_t len, const DPartition *partition);
+ssize_t device_read_at(const size_t addr, void *buffer, const size_t len, const DPartition *partition);
+ssize_t device_read_at_blk(const uint32_t index, void *buffer, const size_t len, const DPartition *partition);
+ssize_t device_read_at_entry_loc(const EntryPointerLoc entryLoc, void *buffer, const DPartition *partition);
+int force_allocate_space(const char *device, size_t size);
 #pragma endregion
 
 #pragma region Code naming

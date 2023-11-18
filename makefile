@@ -22,7 +22,7 @@ TOBJS=$(patsubst $(TEST)/%.c, $(OBJ)/tests/%.o, $(TSRCS))
 
 .PHONY: all
 .PHONY: build
-.PHONY: built-tests
+.PHONY: build-tests
 .PHONY: test
 .PHONY: debug
 .PHONY: memleak

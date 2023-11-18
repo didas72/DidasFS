@@ -18,7 +18,7 @@
 #define DFS_NVAL_ARGS 2
 ///@brief Function was unable to open the requested file/device
 #define DFS_FAILED_DEVICE_OPEN 3
-///@brief Function failed to reserve the required file/device space
+///@brief [UNUSED] Function failed to reserve the required file/device space
 #define DFS_FAILED_SPACE_RESERVE 4
 ///@brief Function failed to write to the underlying file/device
 #define DFS_FAILED_DEVICE_WRITE 5
