@@ -7,12 +7,17 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stddef.h>
 
 #include "didasFS.h"
 #include "didasFS_structures.h"
 #include "didasFS_internals.h"
 #include "dPaths.h"
 #include "errUtils.h"
+
+
+
+#define BASE_FILEHANDLE_CAPACITY 64
 
 
 
@@ -63,9 +68,10 @@ DidasFS_err dpopen(const char *device, DPartition **ptHandle)
 	pt->rootBlockAddr = determine_first_blk_addr(blockMapSize);
 	pt->blockCount = blockMapSize << 3;
 
-	err = load_blk_map(pt);
+	ERR_NZERO_CLEANUP_FREE1((err = load_blk_map(pt)), err, close(pt->device), pt, "Failed to load block map.\n");
 
-	ERR_NZERO_CLEANUP_FREE1(err, err, close(pt->device), pt, "Failed to load block map.\n");
+	pt->fileHandles = hashmap_create(file_descriptor_hasher, dfilestream_deallocator, BASE_FILEHANDLE_CAPACITY);
+	ERR_NULL_CLEANUP_FREE1(pt->fileHandles, DFS_FAILED_ALLOC, close(pt->device); destroy_blk_map(pt), pt, ERR_MSG_ALLOC_FAIL);
 
 	*ptHandle = pt;
 	return DFS_SUCCESS;
@@ -127,8 +133,9 @@ DidasFS_err dfclose(DFileStream *fs)
 {
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
 
-	//Handle pt stuff with fs->pt
+	//TODO: Handle pt stuff with fs->pt
 
+	//Will not be needed, deallocated by hashmap
 	free(fs);
 	
 	return DFS_SUCCESS;
@@ -258,17 +265,16 @@ DidasFS_err dfseek(size_t pos, DFileStream *fs)
 {
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
 
-	//TODO: Consider 'inlining'
 	return set_stream_pos(pos, fs);
 }
 #pragma endregion
 
 
-//======================================
-//= _structures method implementations =
-//======================================
-#pragma region _structures method implementations
-int load_blk_map(DPartition* host)
+//========================================
+//= _structures function implementations =
+//========================================
+#pragma region _structures function implementations
+DidasFS_err load_blk_map(DPartition* host)
 {
 	ERR_NULL(host, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(host));
 
@@ -291,7 +297,7 @@ int load_blk_map(DPartition* host)
 	return DFS_SUCCESS;
 }
 
-int get_blk_used(const DPartition *pt, uint32_t blockIndex, bool *used)
+DidasFS_err get_blk_used(const DPartition *pt, uint32_t blockIndex, bool *used)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(used, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(used));
@@ -305,7 +311,7 @@ int get_blk_used(const DPartition *pt, uint32_t blockIndex, bool *used)
 	return DFS_SUCCESS;
 }
 
-int set_blk_used(const DPartition *pt, uint32_t blockIndex, bool used)
+DidasFS_err set_blk_used(const DPartition *pt, uint32_t blockIndex, bool used)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_IF(blockIndex >= pt->blockCount, DFS_NVAL_ARGS, "Argument 'blockIndex' must be smaller than total block count.\n");
@@ -321,7 +327,7 @@ int set_blk_used(const DPartition *pt, uint32_t blockIndex, bool used)
 	return DFS_SUCCESS;
 }
 
-int flush_full_blk_map(const DPartition *pt)
+DidasFS_err flush_full_blk_map(const DPartition *pt)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
@@ -333,7 +339,7 @@ int flush_full_blk_map(const DPartition *pt)
 	return DFS_SUCCESS;
 }
 
-int destroy_blk_map(DPartition *pt)
+DidasFS_err destroy_blk_map(DPartition *pt)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
@@ -341,6 +347,18 @@ int destroy_blk_map(DPartition *pt)
 	free(pt->blockMap);
 
 	return DFS_SUCCESS;
+}
+
+int file_descriptor_hasher(void *descriptor)
+{
+	return *((int*)descriptor);
+}
+
+void dfilestream_deallocator(void *stream)
+{
+	DFileStream *fs = (DFileStream*)stream;
+
+	free(fs);
 }
 #pragma endregion
 

@@ -7,6 +7,7 @@
 #include <stdbool.h>
 
 #include "didasFS.h"
+#include "structures/hashmap.h"
 
 #define SECTOR_SIZE 512
 #define BLOCK_SIZE 32768
@@ -55,6 +56,7 @@ typedef struct DPartition
 	size_t rootBlockAddr;
 	uint32_t blockCount;
 	BlockMap *blockMap;
+	Hashmap *fileHandles;
 } _DPartition;
 
 typedef struct DFileStream
@@ -96,10 +98,15 @@ typedef struct
 
 
 //"Private" logical representation methods
-int load_blk_map(DPartition *host);
-int get_blk_used(const DPartition *pt, uint32_t blockIndex, bool *used);
-int set_blk_used(const DPartition *pt, uint32_t blockIndex, bool used);
-int flush_full_blk_map(const DPartition *pt);
+DidasFS_err load_blk_map(DPartition *host);
+DidasFS_err get_blk_used(const DPartition *pt, uint32_t blockIndex, bool *used);
+DidasFS_err set_blk_used(const DPartition *pt, uint32_t blockIndex, bool used);
+DidasFS_err flush_full_blk_map(const DPartition *pt);
 //int FlushBlockMapChanges(DPartition *pt);
-int destroy_blk_map(DPartition *pt);
+DidasFS_err destroy_blk_map(DPartition *pt);
+
+
+//Auxiliar methods
+int file_descriptor_hasher(void *descriptor);
+void dfilestream_deallocator(void *stream);
 #endif
