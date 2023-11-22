@@ -7,6 +7,9 @@
 #include <stddef.h>
 
 
+typedef int DidasFS_err;
+
+
 //===Error codes===
 ///@brief Function has not been (fully) implemented
 #define DFS_NOT_IMPLEMENTED -1
@@ -51,7 +54,7 @@ typedef struct DFileStream DFileStream;
  * @param dataSize The size of the data space to allocate
  * @return int containing the error code for the operation
  */
-int dpcreate(const char *device, size_t totalSize);
+DidasFS_err dpcreate(const char *device, size_t totalSize);
 /**
  * @brief Opens an existing partition from a file/device
  * 
@@ -59,14 +62,14 @@ int dpcreate(const char *device, size_t totalSize);
  * @param ptHandle Pointer to a partition handle pointer
  * @return int containing the error code for the operation
  */
-int dpopen(const char *device, DPartition **ptHandle);
+DidasFS_err dpopen(const char *device, DPartition **ptHandle);
 /**
  * @brief Closes an open partition, releasing all associated resources
  * 
  * @param ptHandle Pointer to a partition handle
  * @return int containing the error code for the operation
  */
-int dpclose(DPartition *ptHandle);
+DidasFS_err dpclose(DPartition *ptHandle);
 
 /**
  * @brief Creates an empty directory at the specified path
@@ -75,7 +78,7 @@ int dpclose(DPartition *ptHandle);
  * @param path Path of the directory to be created
  * @return int containing the error code for the operation
  */
-int ddcreate(DPartition *pt, const char *path);
+DidasFS_err ddcreate(DPartition *pt, const char *path);
 /**
  * @brief Create an empty file at the specified path
  * 
@@ -83,7 +86,7 @@ int ddcreate(DPartition *pt, const char *path);
  * @param path Path of the directory to be created
  * @return int containing the error code for the operation
  */
-int dfcreate(DPartition *pt, const char *path);
+DidasFS_err dfcreate(DPartition *pt, const char *path);
 
 /**
  * @brief Opens an existing file at the specified path
@@ -93,14 +96,14 @@ int dfcreate(DPartition *pt, const char *path);
  * @param fsHandle Pointer to the file handle pointer to populate
  * @return int containing the error code for the operation
  */
-int dfopen(DPartition *pt, const char *path, DFileStream **fsHandle);
+DidasFS_err dfopen(DPartition *pt, const char *path, DFileStream **fsHandle);
 /**
  * @brief Closes an open file handle and flushes and buffered changes
  * 
  * @param fs Pointer to the file handle to be closed
  * @return int containing the error code for the operation
  */
-int dfclose(DFileStream *fs);
+DidasFS_err dfclose(DFileStream *fs);
 
 /**
  * @brief Writes a block of data to a stream
@@ -111,7 +114,7 @@ int dfclose(DFileStream *fs);
  * @param written Referenced variable will be set to the actual number of bytes written
  * @return int containing the error code for the operation
  */
-int dfwrite(void *buffer, size_t len, DFileStream *fs, size_t *written);
+DidasFS_err dfwrite(void *buffer, size_t len, DFileStream *fs, size_t *written);
 /**
  * @brief Reads a block of data from a stream
  * 
@@ -121,7 +124,7 @@ int dfwrite(void *buffer, size_t len, DFileStream *fs, size_t *written);
  * @param written Referenced variable will be set to the actual number of bytes read
  * @return int containing the error code for the operation
  */
-int dfread(void *buffer, size_t len, DFileStream *fs, size_t *read);
+DidasFS_err dfread(void *buffer, size_t len, DFileStream *fs, size_t *read);
 /**
  * @brief Sets the stream position
  * 
@@ -129,5 +132,5 @@ int dfread(void *buffer, size_t len, DFileStream *fs, size_t *read);
  * @param fs Pointer to the file handle to modify
  * @return int containing the error code for the operation
  */
-int dfseek(size_t pos, DFileStream *fs);
+DidasFS_err dfseek(size_t pos, DFileStream *fs);
 #endif
