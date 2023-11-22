@@ -13,7 +13,7 @@ DOC=doc
 OUTBIN=$(BIN)/main.a
 TESTBIN=$(BIN)/tester
 
-SRCS=$(wildcard $(SRC)/*.c)
+SRCS=$(shell find $(SRC) -type f -name '*.c')
 OBJS=$(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SRCS))
 
 TSRCS=$(wildcard $(TEST)/*.c)

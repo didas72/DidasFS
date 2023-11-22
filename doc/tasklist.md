@@ -1,9 +1,8 @@
 # TODO list
 
-REWORK: Use descriptors and errno-type error system:
+REWORK: Use descriptors and errno-type or enum error system:
 
 * Remove DFileStreams and switch to internal descriptors
-* Change error system to errno-similar and use returns for descriptors
 * DPartition must track open file handles
 * dfopen must not allow opening of directories as files
 * dfopen must register file handle
