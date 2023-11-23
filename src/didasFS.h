@@ -96,14 +96,14 @@ DidasFS_err dfcreate(DPartition *pt, const char *path);
  * @param fsHandle Pointer to the file handle pointer to populate
  * @return int containing the error code for the operation
  */
-DidasFS_err dfopen(DPartition *pt, const char *path, DFileStream **fsHandle);
+DidasFS_err dfopen(DPartition *pt, const char *path, int *fsHandle);
 /**
  * @brief Closes an open file handle and flushes and buffered changes
  * 
  * @param fs Pointer to the file handle to be closed
  * @return int containing the error code for the operation
  */
-DidasFS_err dfclose(DFileStream *fs);
+DidasFS_err dfclose(int fs);
 
 /**
  * @brief Writes a block of data to a stream
@@ -114,7 +114,7 @@ DidasFS_err dfclose(DFileStream *fs);
  * @param written Referenced variable will be set to the actual number of bytes written
  * @return int containing the error code for the operation
  */
-DidasFS_err dfwrite(void *buffer, size_t len, DFileStream *fs, size_t *written);
+DidasFS_err dfwrite(void *buffer, size_t len, int fs, size_t *written);
 /**
  * @brief Reads a block of data from a stream
  * 
@@ -124,7 +124,7 @@ DidasFS_err dfwrite(void *buffer, size_t len, DFileStream *fs, size_t *written);
  * @param written Referenced variable will be set to the actual number of bytes read
  * @return int containing the error code for the operation
  */
-DidasFS_err dfread(void *buffer, size_t len, DFileStream *fs, size_t *read);
+DidasFS_err dfread(void *buffer, size_t len, int fs, size_t *read);
 /**
  * @brief Sets the stream position
  * 
@@ -132,5 +132,5 @@ DidasFS_err dfread(void *buffer, size_t len, DFileStream *fs, size_t *read);
  * @param fs Pointer to the file handle to modify
  * @return int containing the error code for the operation
  */
-DidasFS_err dfseek(size_t pos, DFileStream *fs);
+DidasFS_err dfseek(size_t pos, int fs);
 #endif

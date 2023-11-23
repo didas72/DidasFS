@@ -121,7 +121,6 @@ DidasFS_err dfopen(DPartition *pt, const char *path, DFileStream **fsHandle)
 	fs->curBlockIdx = entry.firstBlock;
 	fs->firstBlockIdx = entry.firstBlock;
 	fs->lastBlockIdx = entry.lastBlock;
-	//fs->fileFlags = entry.flags;
 	fs->entryLoc = entryLoc;
 	fs->pt = pt;
 
