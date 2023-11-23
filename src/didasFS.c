@@ -25,7 +25,7 @@
 //= Function implementations =
 //============================
 #pragma region Function implementations
-DidasFS_err dpcreate(const char *device, size_t totalSize)
+DFS_err dpcreate(const char *device, size_t totalSize)
 {
 	ERR_NULL(device, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(device));
 	ERR_IF(totalSize == 0, DFS_NVAL_ARGS, "Argument 'totalSize' cannot be 0.\n");
@@ -42,7 +42,7 @@ DidasFS_err dpcreate(const char *device, size_t totalSize)
 	return DFS_SUCCESS;
 }
 
-DidasFS_err dpopen(const char *device, DPartition **ptHandle)
+DFS_err dpopen(const char *device, DPartition **ptHandle)
 {
 	ERR_NULL(ptHandle, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(ptHandle));
 
@@ -77,7 +77,7 @@ DidasFS_err dpopen(const char *device, DPartition **ptHandle)
 	return DFS_SUCCESS;
 }
 
-DidasFS_err dpclose(DPartition *ptHandle)
+DFS_err dpclose(DPartition *ptHandle)
 {
 	ERR_NULL(ptHandle, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(ptHandle));
 
@@ -91,17 +91,17 @@ DidasFS_err dpclose(DPartition *ptHandle)
 	return DFS_SUCCESS;
 }
 
-DidasFS_err ddcreate(DPartition *pt, const char *path)
+DFS_err ddcreate(DPartition *pt, const char *path)
 {
 	return create_object(pt, path, ENTRY_FLAG_DIR | ENTRY_FLAG_READWRITE);
 }
 
-DidasFS_err dfcreate(DPartition *pt, const char *path)
+DFS_err dfcreate(DPartition *pt, const char *path)
 {
 	return create_object(pt, path, ENTRY_FLAG_FILE | ENTRY_FLAG_READWRITE);
 }
 
-DidasFS_err dfopen(DPartition *pt, const char *path, DFileStream **fsHandle)
+DFS_err dfopen(DPartition *pt, const char *path, DFileStream **fsHandle)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(fsHandle, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fsHandle));
@@ -128,7 +128,7 @@ DidasFS_err dfopen(DPartition *pt, const char *path, DFileStream **fsHandle)
 	return DFS_SUCCESS;
 }
 
-DidasFS_err dfclose(DFileStream *fs)
+DFS_err dfclose(DFileStream *fs)
 {
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
 
@@ -140,7 +140,7 @@ DidasFS_err dfclose(DFileStream *fs)
 	return DFS_SUCCESS;
 }
 
-DidasFS_err dfwrite(void *buffer, size_t len, DFileStream *fs, size_t *written)
+DFS_err dfwrite(void *buffer, size_t len, DFileStream *fs, size_t *written)
 {
 	ERR_NULL(buffer, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(buffer));
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
@@ -209,7 +209,7 @@ DidasFS_err dfwrite(void *buffer, size_t len, DFileStream *fs, size_t *written)
 	return DFS_SUCCESS;
 }
 
-DidasFS_err dfread(void *buffer, size_t len, DFileStream *fs, size_t *readc)
+DFS_err dfread(void *buffer, size_t len, DFileStream *fs, size_t *readc)
 {
 	ERR_NULL(buffer, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(buffer));
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
@@ -260,7 +260,7 @@ DidasFS_err dfread(void *buffer, size_t len, DFileStream *fs, size_t *readc)
 	return DFS_SUCCESS;
 }
 
-DidasFS_err dfseek(size_t pos, DFileStream *fs)
+DFS_err dfseek(size_t pos, DFileStream *fs)
 {
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
 
@@ -273,7 +273,7 @@ DidasFS_err dfseek(size_t pos, DFileStream *fs)
 //= _structures function implementations =
 //========================================
 #pragma region _structures function implementations
-DidasFS_err load_blk_map(DPartition* host)
+DFS_err load_blk_map(DPartition* host)
 {
 	ERR_NULL(host, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(host));
 
@@ -296,7 +296,7 @@ DidasFS_err load_blk_map(DPartition* host)
 	return DFS_SUCCESS;
 }
 
-DidasFS_err get_blk_used(const DPartition *pt, uint32_t blockIndex, bool *used)
+DFS_err get_blk_used(const DPartition *pt, uint32_t blockIndex, bool *used)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(used, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(used));
@@ -310,7 +310,7 @@ DidasFS_err get_blk_used(const DPartition *pt, uint32_t blockIndex, bool *used)
 	return DFS_SUCCESS;
 }
 
-DidasFS_err set_blk_used(const DPartition *pt, uint32_t blockIndex, bool used)
+DFS_err set_blk_used(const DPartition *pt, uint32_t blockIndex, bool used)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_IF(blockIndex >= pt->blockCount, DFS_NVAL_ARGS, "Argument 'blockIndex' must be smaller than total block count.\n");
@@ -326,7 +326,7 @@ DidasFS_err set_blk_used(const DPartition *pt, uint32_t blockIndex, bool used)
 	return DFS_SUCCESS;
 }
 
-DidasFS_err flush_full_blk_map(const DPartition *pt)
+DFS_err flush_full_blk_map(const DPartition *pt)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
@@ -338,7 +338,7 @@ DidasFS_err flush_full_blk_map(const DPartition *pt)
 	return DFS_SUCCESS;
 }
 
-DidasFS_err destroy_blk_map(DPartition *pt)
+DFS_err destroy_blk_map(DPartition *pt)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
@@ -380,7 +380,7 @@ inline ssize_t device_write_at(const size_t addr, void *buffer, const size_t len
 	device_seek(SEEK_SET, addr, partition);
 	return device_write(buffer, len, partition);
 }
-inline ssize_t device_write_at_blk(const uint32_t index, void *buffer, const size_t len, const DPartition *partition)
+inline ssize_t device_write_at_blk(const blk_idx_t index, void *buffer, const size_t len, const DPartition *partition)
 {
 	size_t addr = blk_idx_to_addr(partition, index);
 	device_seek(SEEK_SET, addr, partition);
@@ -402,7 +402,7 @@ inline ssize_t device_read_at(const size_t addr, void *buffer, const size_t len,
 	device_seek(SEEK_SET, addr, partition);
 	return device_read(buffer, len, partition);
 }
-inline ssize_t device_read_at_blk(const uint32_t index, void *buffer, const size_t len, const DPartition *partition)
+inline ssize_t device_read_at_blk(const blk_idx_t index, void *buffer, const size_t len, const DPartition *partition)
 {
 	size_t addr = blk_idx_to_addr(partition, index);
 	device_seek(SEEK_SET, addr, partition);
@@ -415,7 +415,7 @@ inline ssize_t device_read_at_entry_loc(const EntryPointerLoc entryLoc, void *bu
 	return device_read(buffer, sizeof(EntryPointer), partition);
 }
 
-DidasFS_err force_allocate_space(const char *device, size_t size)
+DFS_err force_allocate_space(const char *device, size_t size)
 {
 	ERR_NULL(device, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(device));
 	ERR_IF(size == 0, DFS_NVAL_ARGS, "Argument 'size' must not be 0.\n");
@@ -434,12 +434,12 @@ DidasFS_err force_allocate_space(const char *device, size_t size)
 }
 #pragma endregion
 #pragma region Block-Address abstraction
-size_t blk_idx_to_addr(const DPartition *partition, const uint32_t index)
+size_t blk_idx_to_addr(const DPartition *partition, const blk_idx_t index)
 {
 	return partition->rootBlockAddr + (size_t)index * BLOCK_SIZE;
 }
 
-size_t blk_off_to_addr(const DPartition *partition, const uint32_t index, const size_t offset)
+size_t blk_off_to_addr(const DPartition *partition, const blk_idx_t index, const size_t offset)
 {
 	return blk_idx_to_addr(partition, index) + sizeof(BlockHeader) + offset;
 }
@@ -516,7 +516,7 @@ return_value:
 	return current;
 }
 
-DidasFS_err init_empty_partition(const char *device, size_t blockCount)
+DFS_err init_empty_partition(const char *device, size_t blockCount)
 {
 	ERR_NULL(device, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(device));
 	ERR_IF(blockCount == 0, DFS_NVAL_ARGS, "Argument 'blockCount' must not be 0.\n");
@@ -544,7 +544,7 @@ DidasFS_err init_empty_partition(const char *device, size_t blockCount)
 	return DFS_SUCCESS;
 }
 
-DidasFS_err validate_partition_header(const DPartition* pt)
+DFS_err validate_partition_header(const DPartition* pt)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
@@ -566,7 +566,7 @@ DidasFS_err validate_partition_header(const DPartition* pt)
 	return DFS_SUCCESS;
 }
 
-DidasFS_err set_stream_pos(size_t position, DFileStream *fs)
+DFS_err set_stream_pos(size_t position, DFileStream *fs)
 {
 	ERR_IF(position > fs->fileSize, DFS_NVAL_SEEK, "Attempted to seek beyond file boundaries.\n");
 
@@ -602,7 +602,7 @@ DidasFS_err set_stream_pos(size_t position, DFileStream *fs)
 }
 #pragma endregion
 #pragma region Block navigation
-DidasFS_err find_entry_ptr(const DPartition* pt, const char *path, EntryPointer *entry, EntryPointerLoc *entryLoc)
+DFS_err find_entry_ptr(const DPartition* pt, const char *path, EntryPointer *entry, EntryPointerLoc *entryLoc)
 {
 	//This is the 'intermediate' method
 	//Validates arguments and initiates recursion
@@ -631,7 +631,7 @@ DidasFS_err find_entry_ptr(const DPartition* pt, const char *path, EntryPointer 
 	return find_entry_ptr_recursion(pt, 0, path, entry, entryLoc);
 }
 
-DidasFS_err find_entry_ptr_recursion(const DPartition* pt, const uint32_t curBlock, const char *path, EntryPointer *entry, EntryPointerLoc *entryLoc)
+DFS_err find_entry_ptr_recursion(const DPartition* pt, const blk_idx_t curBlock, const char *path, EntryPointer *entry, EntryPointerLoc *entryLoc)
 {
 	char root[MAX_PATH_NAME + 1];
 	char tail[MAX_PATH + 1];
@@ -715,7 +715,7 @@ DidasFS_err find_entry_ptr_recursion(const DPartition* pt, const uint32_t curBlo
 	}
 }
 
-DidasFS_err find_free_blk(const DPartition *pt, uint32_t *index)
+DFS_err find_free_blk(const DPartition *pt, blk_idx_t *index)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(index, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(index));
@@ -740,7 +740,7 @@ DidasFS_err find_free_blk(const DPartition *pt, uint32_t *index)
 }
 #pragma endregion
 #pragma region Block manipulation
-DidasFS_err append_blk_to_file(const DPartition *pt, const EntryPointerLoc entryLoc, uint32_t *newBlkIdx)
+DFS_err append_blk_to_file(const DPartition *pt, const EntryPointerLoc entryLoc, blk_idx_t *newBlkIdx)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
@@ -793,7 +793,7 @@ DidasFS_err append_blk_to_file(const DPartition *pt, const EntryPointerLoc entry
 	return DFS_SUCCESS;
 }
 
-DidasFS_err append_entry_to_dir(const DPartition *pt, const EntryPointerLoc dirEntryLoc, EntryPointer newEntry)
+DFS_err append_entry_to_dir(const DPartition *pt, const EntryPointerLoc dirEntryLoc, EntryPointer newEntry)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
@@ -837,7 +837,7 @@ DidasFS_err append_entry_to_dir(const DPartition *pt, const EntryPointerLoc dirE
 }
 #pragma endregion
 #pragma region File manipulation
-DidasFS_err create_object(DPartition *pt, const char *path, const uint16_t flags)
+DFS_err create_object(DPartition *pt, const char *path, const uint16_t flags)
 {
 	char parentDir[MAX_PATH + 1];
 	char name[MAX_PATH_NAME + 1];
@@ -884,7 +884,7 @@ DidasFS_err create_object(DPartition *pt, const char *path, const uint16_t flags
 	return DFS_SUCCESS;
 }
 
-DidasFS_err determine_file_size(DPartition *pt, const EntryPointer entry, size_t *size)
+DFS_err determine_file_size(DPartition *pt, const EntryPointer entry, size_t *size)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(size, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(size));
@@ -906,5 +906,11 @@ DidasFS_err determine_file_size(DPartition *pt, const EntryPointer entry, size_t
 	*size = counter;
 
 	return DFS_SUCCESS;
+}
+#pragma endregion
+#pragma region File handles
+DFS_err handle_can_open(DPartition *pt, const char *path, const DFS_filem_flags flags)
+{	return DFS_NOT_IMPLEMENTED;
+
 }
 #pragma endregion
