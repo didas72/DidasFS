@@ -38,15 +38,15 @@ typedef struct
 {
 	size_t length;
 	uint8_t *map;
-	dfs_partition *host;
-} BlockMap;
+	//dfs_partition *host;
+} blk_map;
 
 //Set to -1, -1 for root
 typedef struct
 {
 	blk_idx_t blockIndex;
 	uint32_t entryIndex;
-} EntryPointerLoc;
+} entry_ptr_loc;
 
 
 //==="Public" logical representations===
@@ -55,7 +55,7 @@ typedef struct dfs_partition
 	int device;
 	size_t rootBlockAddr;
 	uint32_t blockCount;
-	BlockMap *blockMap;
+	blk_map *blockMap;
 	Hashmap *fileHandles;
 } _dfs_partition;
 
@@ -69,7 +69,7 @@ typedef struct dfs_file
 	size_t head;
 	size_t file_size;
 	blk_idx_t cur_blk_idx, first_blk_idx, last_blk_idx;
-	EntryPointerLoc entry_loc;
+	entry_ptr_loc entry_loc;
 
 	//Partition not needed, will be passed to every call
 } _dfs_file;
@@ -81,7 +81,7 @@ typedef struct
 	uint32_t magicNumber;
 	uint32_t blockMapSize;
 	uint64_t resvd;
-} __attribute__((packed)) PartitionHeader;
+} __attribute__((packed)) partition_header;
 
 typedef struct
 {
@@ -89,7 +89,7 @@ typedef struct
 	blk_idx_t nextBlock;
 	uint32_t usedSpace;
 	uint32_t resvd;
-} __attribute__((packed)) BlockHeader;
+} __attribute__((packed)) block_header;
 
 typedef struct 
 {
@@ -98,7 +98,7 @@ typedef struct
 	file_flags_t flags;
 	uint16_t resvd;
 	char name[20];
-} __attribute__((packed)) EntryPointer;
+} __attribute__((packed)) entry_pointer;
 
 
 //"Private" logical representation methods
@@ -106,6 +106,6 @@ dfs_err load_blk_map(dfs_partition *host);
 dfs_err get_blk_used(const dfs_partition *pt, blk_idx_t blockIndex, bool *used);
 dfs_err set_blk_used(const dfs_partition *pt, blk_idx_t blockIndex, bool used);
 dfs_err flush_full_blk_map(const dfs_partition *pt);
-//int FlushBlockMapChanges(dfs_partition *pt);
+//int Flushblk_mapChanges(dfs_partition *pt);
 dfs_err destroy_blk_map(dfs_partition *pt);
 #endif

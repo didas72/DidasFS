@@ -14,7 +14,7 @@ Offset | Length | Type | Purpose
 4 | 4 | int | Block map size (BMS) = block count / 8
 8 | 8 | N/A | Reserved
 16 | BMS | N/A | Block map
-DTS - 32 | 32 | EntryPointer | Root pointer
+DTS - 32 | 32 | entry_pointer | Root pointer
 DTS\* | BMS\*8\*BS | N/A | Data blocks
 
 **Remark:** Header size = 16  

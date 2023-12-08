@@ -12,7 +12,7 @@
 //======================
 //= Internal functions =
 //======================
-static const char *GetFirstNotTip(const char *src, char ch)
+static const char *get_first_not_tip(const char *src, char ch)
 {
 	size_t len = strlen(src);
 
@@ -32,7 +32,7 @@ static const char *GetFirstNotTip(const char *src, char ch)
 	return NULL;
 }
 
-static const char *GetLastNotTip(const char *src, char ch)
+static const char *get_last_not_tip(const char *src, char ch)
 {
 	size_t len = strlen(src);
 
@@ -58,7 +58,7 @@ static const char *GetLastNotTip(const char *src, char ch)
 //============================
 //= Function implementations =
 //============================
-char DPathEndsInSeparator(const char *path)
+char dfs_path_ends_in_separator(const char *path)
 {
 	if (path == NULL || strlen(path) == 0)
 		return 0;
@@ -67,7 +67,7 @@ char DPathEndsInSeparator(const char *path)
 
 }
 
-char *DPathCombine(char* destination, const char *path1, const char *path2)
+char *dfs_path_combine(char* destination, const char *path1, const char *path2)
 {
 	if (path1 == NULL && path2 == NULL)
 		strcpy(destination, "");
@@ -95,13 +95,13 @@ char *DPathCombine(char* destination, const char *path1, const char *path2)
 	return destination;
 }
 
-char *DPathGetParent(char *destination, const char *path)
+char *dfs_path_get_parent(char *destination, const char *path)
 {
 	if (path == NULL || strlen(path) == 0)
 		strcpy(destination, "");
 	else
 	{
-		const char *sep = GetLastNotTip(path, DIR_SEPARATOR_CH);
+		const char *sep = get_last_not_tip(path, DIR_SEPARATOR_CH);
 
 		if (sep == NULL)
 		{
@@ -117,13 +117,13 @@ char *DPathGetParent(char *destination, const char *path)
 	return destination;
 }
 
-char *DPathGetName(char *destination, const char *path)
+char *dfs_path_get_name(char *destination, const char *path)
 {
 	if (path == NULL || strlen(path) == 0)
 		strcpy(destination, "");
 	else
 	{
-		const char *sep = GetLastNotTip(path, DIR_SEPARATOR_CH);
+		const char *sep = get_last_not_tip(path, DIR_SEPARATOR_CH);
 
 		if (sep == NULL)
 		{
@@ -134,20 +134,20 @@ char *DPathGetName(char *destination, const char *path)
 		strcpy(destination, ++sep);
 
 		//Strip last separator if present
-		if (DPathEndsInSeparator(destination))
+		if (dfs_path_ends_in_separator(destination))
 			destination[strlen(destination) - 1] = '\0';
 	}
 
 	return destination;
 }
 
-char *DPathGetRoot(char *destination, const char *path)
+char *dfs_path_get_root(char *destination, const char *path)
 {
 	if (path == NULL || strlen(path) == 0)
 		strcpy(destination, "");
 	else
 	{
-		const char *sep = GetFirstNotTip(path, DIR_SEPARATOR_CH);
+		const char *sep = get_first_not_tip(path, DIR_SEPARATOR_CH);
 
 		if (sep == NULL)
 		{
@@ -160,20 +160,20 @@ char *DPathGetRoot(char *destination, const char *path)
 		destination[len] = '\0';
 
 		//Strip last separator if present
-		if (DPathEndsInSeparator(destination))
+		if (dfs_path_ends_in_separator(destination))
 			destination[len - 1] = '\0';
 	}
 
 	return destination;
 }
 
-char *DPathGetTail(char *destination, const char *path)
+char *dfs_path_get_tail(char *destination, const char *path)
 {
 	if (path == NULL || strlen(path) == 0)
 		strcpy(destination, "");
 	else
 	{
-		const char *sep = GetFirstNotTip(path, DIR_SEPARATOR_CH);
+		const char *sep = get_first_not_tip(path, DIR_SEPARATOR_CH);
 
 		if (sep == NULL)
 		{
@@ -187,7 +187,7 @@ char *DPathGetTail(char *destination, const char *path)
 	return destination;
 }
 
-bool DPathIsEmpty(const char* path)
+bool dfs_path_is_empty(const char* path)
 {
 	return !strlen(path);
 }

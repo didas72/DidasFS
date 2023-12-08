@@ -15,7 +15,7 @@
  * @param path The path to be checked
  * @return 0 if the path does not end in a separator, non-zero otherwise
  */
-char DPathEndsInSeparator(const char *path);
+char dfs_path_ends_in_separator(const char *path);
 /** 
  * @brief Combines two path strings into a single one
  * 
@@ -24,7 +24,7 @@ char DPathEndsInSeparator(const char *path);
  * @param path2 Second path to combine
  * @return Destination is returned
  */
-char *DPathCombine(char *destination, const char *path1, const char *path2);
+char *dfs_path_combine(char *destination, const char *path1, const char *path2);
 /** 
  * @brief Gets parent directory from path
  * 
@@ -32,7 +32,7 @@ char *DPathCombine(char *destination, const char *path1, const char *path2);
  * @param path The path to examine
  * @return Destination is returned
  */
-char *DPathGetParent(char *destination, const char *path);
+char *dfs_path_get_parent(char *destination, const char *path);
 /** 
  * @brief Gets file/directory name from path
  * 
@@ -40,10 +40,10 @@ char *DPathGetParent(char *destination, const char *path);
  * @param path The path to examine
  * @return Destination is returned
  */
-char *DPathGetName(char *destination, const char *path);
+char *dfs_path_get_name(char *destination, const char *path);
 
-char *DPathGetRoot(char *destination, const char *path);
-char *DPathGetTail(char *destination, const char *path);
-bool DPathIsEmpty(const char *path);
+char *dfs_path_get_root(char *destination, const char *path);
+char *dfs_path_get_tail(char *destination, const char *path);
+bool dfs_path_is_empty(const char *path);
 
 #endif

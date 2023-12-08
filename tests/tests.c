@@ -13,33 +13,33 @@ MU_TEST(combine)
 {
 	char buff[32]; buff[31] = '\0';
 
-	mu_assert_string_eq("./Joel/Leal", DPathCombine(buff, "./Joel", "Leal"));
-	mu_assert_string_eq("./Joel/Leal", DPathCombine(buff, "./Joel/", "Leal"));
-	mu_assert_string_eq("./Joel/Leal", DPathCombine(buff, "./Joel", "/Leal"));
-	mu_assert_string_eq("./Joel/Leal", DPathCombine(buff, "./Joel/", "/Leal"));
+	mu_assert_string_eq("./Joel/Leal", dfs_path_combine(buff, "./Joel", "Leal"));
+	mu_assert_string_eq("./Joel/Leal", dfs_path_combine(buff, "./Joel/", "Leal"));
+	mu_assert_string_eq("./Joel/Leal", dfs_path_combine(buff, "./Joel", "/Leal"));
+	mu_assert_string_eq("./Joel/Leal", dfs_path_combine(buff, "./Joel/", "/Leal"));
 }
 
 MU_TEST(get_parent)
 {
 	char buff[32]; buff[31] = '\0';
 
-	mu_assert_string_eq("./Joel/asmr", DPathGetParent(buff, "./Joel/asmr/bdsm/"));
-	mu_assert_string_eq("./Joel", DPathGetParent(buff, "./Joel/asmr"));
-	mu_assert_string_eq("Joel", DPathGetParent(buff, "Joel/Joel"));
-	mu_assert_string_eq("", DPathGetParent(buff, "Joel"));
+	mu_assert_string_eq("./Joel/asmr", dfs_path_get_parent(buff, "./Joel/asmr/bdsm/"));
+	mu_assert_string_eq("./Joel", dfs_path_get_parent(buff, "./Joel/asmr"));
+	mu_assert_string_eq("Joel", dfs_path_get_parent(buff, "Joel/Joel"));
+	mu_assert_string_eq("", dfs_path_get_parent(buff, "Joel"));
 }
 
 MU_TEST(get_name)
 {
 	char buff[32]; buff[31] = '\0';
 
-	mu_assert_string_eq("bdsm", DPathGetName(buff, "./Joel/asmr/bdsm/"));
-	mu_assert_string_eq("asmr", DPathGetName(buff, "./Joel/asmr"));
-	mu_assert_string_eq("Joel", DPathGetName(buff, "Joel/Joel"));
-	mu_assert_string_eq("Joel", DPathGetName(buff, "Joel"));
+	mu_assert_string_eq("bdsm", dfs_path_get_name(buff, "./Joel/asmr/bdsm/"));
+	mu_assert_string_eq("asmr", dfs_path_get_name(buff, "./Joel/asmr"));
+	mu_assert_string_eq("Joel", dfs_path_get_name(buff, "Joel/Joel"));
+	mu_assert_string_eq("Joel", dfs_path_get_name(buff, "Joel"));
 }
 
-MU_TEST_SUITE(dfs_path_all)
+MU_TEST_SUITE(dfs_dfs_path_all)
 {
 	MU_RUN_TEST(combine);
 	MU_RUN_TEST(get_parent);
@@ -124,7 +124,7 @@ void HandTest()
 int main()
 {
 	//Test framework
-	MU_RUN_SUITE(dfs_path_all);
+	MU_RUN_SUITE(dfs_dfs_path_all);
 	MU_REPORT();
 
 	printf("Hand tests:\n");

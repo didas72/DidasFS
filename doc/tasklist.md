@@ -31,7 +31,7 @@ ADD FEATURE: Implement higher level:
 * Check total free space
 * Verify and cleanup FS
 
-PERFORMANCE: Make BlockMap changes buffered
+PERFORMANCE: Make blk_map changes buffered
 PERFORMANCE: Make reads/writes buffered
 PERFORMANCE: Remove system buffering
 REMINDER: Ensure flushes when closing streams (both in FS and in system)
