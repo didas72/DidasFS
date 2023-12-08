@@ -79,17 +79,17 @@ char *dfs_path_combine(char* destination, const char *path1, const char *path2)
 	{
 		strcpy(destination, path1);
 
-		char* lastChar = &destination[strlen(path1) - 1];
+		char* last_char = &destination[strlen(path1) - 1];
 
 		//Only add separator neither path1 nor path2 have it
-		if (*lastChar != DIR_SEPARATOR_CH && *path2 != DIR_SEPARATOR_CH)
-			*(++lastChar) = DIR_SEPARATOR_CH;
+		if (*last_char != DIR_SEPARATOR_CH && *path2 != DIR_SEPARATOR_CH)
+			*(++last_char) = DIR_SEPARATOR_CH;
 
 		//Strip separator if both path1 and path2 have it
-		if (*lastChar == DIR_SEPARATOR_CH && *path2 == DIR_SEPARATOR_CH)
+		if (*last_char == DIR_SEPARATOR_CH && *path2 == DIR_SEPARATOR_CH)
 			path2++;
 
-		strcpy(++lastChar, path2);
+		strcpy(++last_char, path2);
 	}
 
 	return destination;

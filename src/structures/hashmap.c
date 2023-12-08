@@ -98,7 +98,7 @@ bool hashmap_add(Hashmap *map, void *key, void *value)
 	int hash = map->hasher(key);
 	int index = hash % map->capacity;
 	HashEntry *entry = &map->entries[index], *last = entry;
-	HashEntry newEntry = { .used = true, .hash = hash, .value = value, .next = NULL };
+	HashEntry new_entry = { .used = true, .hash = hash, .value = value, .next = NULL };
 
 	if (entry->used)
 	{
@@ -115,7 +115,7 @@ bool hashmap_add(Hashmap *map, void *key, void *value)
 	}
 
 	last->next = entry;
-	*entry = newEntry;
+	*entry = new_entry;
 	map->count++; //TODO: Grow if needed
 	return true;
 }

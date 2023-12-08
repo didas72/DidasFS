@@ -44,8 +44,8 @@ typedef struct
 //Set to -1, -1 for root
 typedef struct
 {
-	blk_idx_t blockIndex;
-	uint32_t entryIndex;
+	blk_idx_t blk_idx;
+	uint32_t entry_idx;
 } entry_ptr_loc;
 
 
@@ -53,10 +53,10 @@ typedef struct
 typedef struct dfs_partition
 {
 	int device;
-	size_t rootBlockAddr;
-	uint32_t blockCount;
-	blk_map *blockMap;
-	Hashmap *fileHandles;
+	size_t root_blk_addr;
+	uint32_t blk_count;
+	blk_map *usage_map;
+	Hashmap *open_handles;
 } _dfs_partition;
 
 typedef struct dfs_file
@@ -78,23 +78,23 @@ typedef struct dfs_file
 //==="Physical" representations===
 typedef struct
 {
-	uint32_t magicNumber;
-	uint32_t blockMapSize;
+	uint32_t magic_number;
+	uint32_t usage_map_size;
 	uint64_t resvd;
 } __attribute__((packed)) partition_header;
 
 typedef struct
 {
-	blk_idx_t prevBlock;
-	blk_idx_t nextBlock;
-	uint32_t usedSpace;
+	blk_idx_t prev_blk;
+	blk_idx_t next_blk;
+	uint32_t used_space;
 	uint32_t resvd;
 } __attribute__((packed)) block_header;
 
 typedef struct 
 {
-	blk_idx_t firstBlock;
-	blk_idx_t lastBlock;
+	blk_idx_t first_blk;
+	blk_idx_t last_blk;
 	file_flags_t flags;
 	uint16_t resvd;
 	char name[20];
@@ -103,8 +103,8 @@ typedef struct
 
 //"Private" logical representation methods
 dfs_err load_blk_map(dfs_partition *host);
-dfs_err get_blk_used(const dfs_partition *pt, blk_idx_t blockIndex, bool *used);
-dfs_err set_blk_used(const dfs_partition *pt, blk_idx_t blockIndex, bool used);
+dfs_err get_blk_used(const dfs_partition *pt, blk_idx_t blk_idx, bool *used);
+dfs_err set_blk_used(const dfs_partition *pt, blk_idx_t blk_idx, bool used);
 dfs_err flush_full_blk_map(const dfs_partition *pt);
 //int Flushblk_mapChanges(dfs_partition *pt);
 dfs_err destroy_blk_map(dfs_partition *pt);

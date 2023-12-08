@@ -64,22 +64,22 @@ typedef struct dfs_file dfs_file;
  * @param dataSize The size of the data space to allocate
  * @return int containing the error code for the operation
  */
-dfs_err dfs_pcreate(const char *device, size_t totalSize);
+dfs_err dfs_pcreate(const char *device, size_t total_size);
 /**
  * @brief Opens an existing partition from a file/device
  * 
  * @param device Path to the file/device to use
- * @param ptHandle Pointer to a partition handle pointer
+ * @param pt_handle Pointer to a partition handle pointer
  * @return int containing the error code for the operation
  */
-dfs_err dfs_popen(const char *device, dfs_partition **ptHandle);
+dfs_err dfs_popen(const char *device, dfs_partition **pt_handle);
 /**
  * @brief Closes an open partition, releasing all associated resources
  * 
- * @param ptHandle Pointer to a partition handle
+ * @param pt_handle Pointer to a partition handle
  * @return int containing the error code for the operation
  */
-dfs_err dfs_pclose(dfs_partition *ptHandle);
+dfs_err dfs_pclose(dfs_partition *pt_handle);
 
 /**
  * @brief Creates an empty directory at the specified path

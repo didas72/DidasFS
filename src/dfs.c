@@ -25,28 +25,28 @@
 //= Function implementations =
 //============================
 #pragma region Function implementations
-dfs_err dfs_pcreate(const char *device, size_t totalSize)
+dfs_err dfs_pcreate(const char *device, size_t total_size)
 {
 	ERR_NULL(device, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(device));
-	ERR_IF(totalSize == 0, DFS_NVAL_ARGS, "Argument 'totalSize' cannot be 0.\n");
+	ERR_IF(total_size == 0, DFS_NVAL_ARGS, "Argument 'total_size' cannot be 0.\n");
 
 	int err;
 	size_t size;
-	size_t blockCount = determine_blk_count(totalSize, &size);
+	size_t blk_count = determine_blk_count(total_size, &size);
 
 	ERR_IF(size == 0, DFS_NVAL_ARGS, "Invalid data size %ld.\n", dataSize);
 	ERR_NZERO((err = force_allocate_space(device, size)), err, "Failed to allocate space.\n");
 
-	ERR_NZERO((err = init_empty_partition(device, blockCount)), err, "Failed to init empty partition.\n");
+	ERR_NZERO((err = init_empty_partition(device, blk_count)), err, "Failed to init empty partition.\n");
 
 	return DFS_SUCCESS;
 }
 
-dfs_err dfs_popen(const char *device, dfs_partition **ptHandle)
+dfs_err dfs_popen(const char *device, dfs_partition **pt_handle)
 {
-	ERR_NULL(ptHandle, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(ptHandle));
+	ERR_NULL(pt_handle, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt_handle));
 
-	*ptHandle = NULL;
+	*pt_handle = NULL;
 	int err;
 
 	dfs_partition* pt = malloc(sizeof(dfs_partition));
@@ -59,34 +59,34 @@ dfs_err dfs_popen(const char *device, dfs_partition **ptHandle)
 		close(pt->device), pt, "Partition header validation failed.\n");
 
 	//Determine address of root block for fast access
-	uint32_t blockMapSize;
+	uint32_t usage_map_size;
 	lseek(pt->device, 4, SEEK_SET);
-	ssize_t readc = read(pt->device, &blockMapSize, sizeof(uint32_t));
+	ssize_t readc = read(pt->device, &usage_map_size, sizeof(uint32_t));
 	ERR_IF_CLEANUP_FREE1(readc != sizeof(uint32_t), DFS_FAILED_DEVICE_READ,
 		close(pt->device), pt, ERR_MSG_DEVICE_READ_FAIL);
 
-	pt->rootBlockAddr = determine_first_blk_addr(blockMapSize);
-	pt->blockCount = blockMapSize << 3;
+	pt->root_blk_addr = determine_first_blk_addr(usage_map_size);
+	pt->blk_count = usage_map_size << 3;
 
 	ERR_NZERO_CLEANUP_FREE1((err = load_blk_map(pt)), err, close(pt->device), pt, "Failed to load block map.\n");
 
-	pt->fileHandles = hashmap_create(file_descriptor_hasher, dfilestream_deallocator, BASE_FILEHANDLE_CAPACITY);
-	ERR_NULL_CLEANUP_FREE1(pt->fileHandles, DFS_FAILED_ALLOC, close(pt->device); destroy_blk_map(pt), pt, ERR_MSG_ALLOC_FAIL);
+	pt->open_handles = hashmap_create(file_descriptor_hasher, dfilestream_deallocator, BASE_FILEHANDLE_CAPACITY);
+	ERR_NULL_CLEANUP_FREE1(pt->open_handles, DFS_FAILED_ALLOC, close(pt->device); destroy_blk_map(pt), pt, ERR_MSG_ALLOC_FAIL);
 
-	*ptHandle = pt;
+	*pt_handle = pt;
 	return DFS_SUCCESS;
 }
 
-dfs_err dfs_pclose(dfs_partition *ptHandle)
+dfs_err dfs_pclose(dfs_partition *pt_handle)
 {
-	ERR_NULL(ptHandle, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(ptHandle));
+	ERR_NULL(pt_handle, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt_handle));
 
 	int err;
 
-	ERR_NZERO((err = flush_full_blk_map(ptHandle)), err, "Failed to flush block map.\n");
-	ERR_NZERO((err = destroy_blk_map(ptHandle)), err, "Failed to destroy block map.\n");
-	close(ptHandle->device);
-	free(ptHandle);
+	ERR_NZERO((err = flush_full_blk_map(pt_handle)), err, "Failed to flush block map.\n");
+	ERR_NZERO((err = destroy_blk_map(pt_handle)), err, "Failed to destroy block map.\n");
+	close(pt_handle->device);
+	free(pt_handle);
 
 	return DFS_SUCCESS;
 }
@@ -109,19 +109,19 @@ dfs_err dfs_fopen(dfs_partition *pt, const char *path, DFileStream **fsHandle)
 	*fsHandle = NULL;
 	int err;
 	entry_pointer entry;
-	entry_ptr_loc entryLoc;
+	entry_ptr_loc entry_loc;
 
 	DFileStream* fs = malloc(sizeof(DFileStream));
 	ERR_NULL(fs, DFS_FAILED_ALLOC, ERR_MSG_ALLOC_FAIL);
 
-	ERR_NZERO_FREE1((err = find_entry_ptr(pt, path, &entry, &entryLoc)), err, fs, "Could not find entry for the requested file.\n");
+	ERR_NZERO_FREE1((err = find_entry_ptr(pt, path, &entry, &entry_loc)), err, fs, "Could not find entry for the requested file.\n");
 	
-	ERR_NZERO_FREE1((err = determine_file_size(pt, entry, &fs->fileSize)), err, fs, "Failed to determine file size.\n");
-	fs->filePos = 0;
-	fs->curBlockIdx = entry.firstBlock;
-	fs->firstBlockIdx = entry.firstBlock;
-	fs->lastBlockIdx = entry.lastBlock;
-	fs->entryLoc = entryLoc;
+	ERR_NZERO_FREE1((err = determine_file_size(pt, entry, &fs->file_size)), err, fs, "Failed to determine file size.\n");
+	fs->file_pos = 0;
+	fs->cur_blkIdx = entry.first_blk;
+	fs->first_blkIdx = entry.first_blk;
+	fs->last_blkIdx = entry.last_blk;
+	fs->entry_loc = entry_loc;
 	fs->pt = pt;
 
 	*fsHandle = fs;
@@ -146,65 +146,65 @@ dfs_err dfs_fwrite(void *buffer, size_t len, DFileStream *fs, size_t *written)
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
 	ERR_IF(len == 0, DFS_NVAL_ARGS, "Argument 'len' must not be 0.\n");
 
-	size_t bufferHead = 0;
+	size_t buffer_head = 0;
 	ssize_t readc;
-	block_header curBlock;
+	block_header cur_blk;
 	int err;
 	
 	//Should work for both append and overwrite
-	while (bufferHead < len)
+	while (buffer_head < len)
 	{
 		//Read cur block
-		readc = device_read_at_blk(fs->curBlockIdx, &curBlock, sizeof(block_header), fs->pt);
+		readc = device_read_at_blk(fs->cur_blkIdx, &cur_blk, sizeof(block_header), fs->pt);
 		ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL); //TODO: Revert changes?
 
 		//Calculate metrics
-		size_t blockOffset = fs->filePos % BLOCK_DATA_SIZE;
-		size_t dataAddr = blk_off_to_addr(fs->pt, fs->curBlockIdx, blockOffset);
+		size_t blockOffset = fs->file_pos % BLOCK_DATA_SIZE;
+		size_t dataAddr = blk_off_to_addr(fs->pt, fs->cur_blkIdx, blockOffset);
 		size_t maxWrite = BLOCK_DATA_SIZE - blockOffset;
-		size_t pendingWrite = len - bufferHead;
-		size_t curBlockWrite = (maxWrite < pendingWrite) ? maxWrite : pendingWrite;
-		size_t finalNewDataInBlock = blockOffset + curBlockWrite;
-		size_t finalDataInBlock = (curBlock.usedSpace > finalNewDataInBlock) ? curBlock.usedSpace : finalNewDataInBlock;
+		size_t pendingWrite = len - buffer_head;
+		size_t cur_blkWrite = (maxWrite < pendingWrite) ? maxWrite : pendingWrite;
+		size_t finalNewDataInBlock = blockOffset + cur_blkWrite;
+		size_t finalDataInBlock = (cur_blk.used_space > finalNewDataInBlock) ? cur_blk.used_space : finalNewDataInBlock;
 
-		if (finalNewDataInBlock > curBlock.usedSpace) //If grown
+		if (finalNewDataInBlock > cur_blk.used_space) //If grown
 		{
-			fs->fileSize += finalNewDataInBlock - curBlock.usedSpace;
+			fs->file_size += finalNewDataInBlock - cur_blk.used_space;
 
 			//Update cur block
-			curBlock.usedSpace = finalDataInBlock;
+			cur_blk.used_space = finalDataInBlock;
 
 			//Flush block changes
-			readc = device_write_at_blk(fs->curBlockIdx, &curBlock, sizeof(block_header), fs->pt);
+			readc = device_write_at_blk(fs->cur_blkIdx, &cur_blk, sizeof(block_header), fs->pt);
 			ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL); //TODO: Revert changes?
 		}
 
 		//Flush data
-		readc = device_write_at(dataAddr, &((char*)buffer)[bufferHead], curBlockWrite, fs->pt);
-		ERR_NZERO(readc != (ssize_t)curBlockWrite, DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL); //TODO: Revert changes?
+		readc = device_write_at(dataAddr, &((char*)buffer)[buffer_head], cur_blkWrite, fs->pt);
+		ERR_NZERO(readc != (ssize_t)cur_blkWrite, DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL); //TODO: Revert changes?
 
 		//Update head
-		bufferHead += curBlockWrite;
-		fs->filePos += curBlockWrite;
+		buffer_head += cur_blkWrite;
+		fs->file_pos += cur_blkWrite;
 
 		//Advance to next block if needed
-		if (bufferHead < len)
+		if (buffer_head < len)
 		{
-			fs->curBlockIdx = curBlock.nextBlock;
+			fs->cur_blkIdx = cur_blk.next_blk;
 
 			//Grow file if needed
-			if (!fs->curBlockIdx)
+			if (!fs->cur_blkIdx)
 			{
 				uint32_t newIndex;
-				err = append_blk_to_file(fs->pt, fs->entryLoc, &newIndex);
+				err = append_blk_to_file(fs->pt, fs->entry_loc, &newIndex);
 				ERR_NZERO(err, err, "Failed to grow file.\n");
-				fs->curBlockIdx = fs->lastBlockIdx = newIndex;
+				fs->cur_blkIdx = fs->last_blkIdx = newIndex;
 			}
 		}
 	}
 
 	if (written)
-		*written = bufferHead;
+		*written = buffer_head;
 
 	return DFS_SUCCESS;
 }
@@ -215,47 +215,47 @@ dfs_err dfs_fread(void *buffer, size_t len, DFileStream *fs, size_t *readc)
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
 	ERR_IF(len == 0, DFS_NVAL_ARGS, "Argument 'len' must not be 0.\n");
 
-	size_t bufferHead = 0, readB;
-	block_header curBlock;
+	size_t buffer_head = 0, readB;
+	block_header cur_blk;
 
-	while (bufferHead < len)
+	while (buffer_head < len)
 	{
 		//Read cur block
-		readB = device_read_at_blk(fs->curBlockIdx, &curBlock, sizeof(block_header), fs->pt);
+		readB = device_read_at_blk(fs->cur_blkIdx, &cur_blk, sizeof(block_header), fs->pt);
 		ERR_IF(readB != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL); //TODO: Revert changes?
 
 		//Calculate metrics
-		size_t blockOffset = fs->filePos % BLOCK_DATA_SIZE;
-		size_t dataAddr = blk_off_to_addr(fs->pt, fs->curBlockIdx, blockOffset);
+		size_t blockOffset = fs->file_pos % BLOCK_DATA_SIZE;
+		size_t dataAddr = blk_off_to_addr(fs->pt, fs->cur_blkIdx, blockOffset);
 		size_t maxRead = BLOCK_DATA_SIZE - blockOffset;
-		size_t pendingRead = len - bufferHead;
-		size_t curBlockRead = (maxRead < pendingRead) ? maxRead : pendingRead;
+		size_t pendingRead = len - buffer_head;
+		size_t cur_blkRead = (maxRead < pendingRead) ? maxRead : pendingRead;
 		
 		//Read data
-		readB = device_read_at(dataAddr, &((char*)buffer)[bufferHead], curBlockRead, fs->pt);
-		ERR_NZERO(readB != curBlockRead, DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL); //TODO: Revert changes?
+		readB = device_read_at(dataAddr, &((char*)buffer)[buffer_head], cur_blkRead, fs->pt);
+		ERR_NZERO(readB != cur_blkRead, DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL); //TODO: Revert changes?
 	
 		//Update head
-		bufferHead += curBlockRead;
-		fs->filePos += curBlockRead;
+		buffer_head += cur_blkRead;
+		fs->file_pos += cur_blkRead;
 
 		//Advance to next block if needed
-		if (bufferHead < len)
+		if (buffer_head < len)
 		{
-			fs->curBlockIdx = curBlock.nextBlock;
+			fs->cur_blkIdx = cur_blk.next_blk;
 
 			//Return early if file ended
-			if (!fs->curBlockIdx)
+			if (!fs->cur_blkIdx)
 			{
 				if (readc)
-					*readc = bufferHead;
+					*readc = buffer_head;
 				return DFS_SUCCESS;
 			}
 		}
 	}
 
 	if (readc)
-		*readc = bufferHead;
+		*readc = buffer_head;
 
 	return DFS_SUCCESS;
 }
@@ -282,7 +282,7 @@ dfs_err load_blk_map(dfs_partition* host)
 	ERR_NULL(map, DFS_FAILED_ALLOC, ERR_MSG_ALLOC_FAIL);
 
 	//map->host = host;
-	map->length = host->blockCount >> 3;
+	map->length = host->blk_count >> 3;
 	map->map = malloc(map->length);
 
 	ERR_NULL_FREE1(map->map, DFS_FAILED_ALLOC, map, ERR_MSG_ALLOC_FAIL);
@@ -291,37 +291,37 @@ dfs_err load_blk_map(dfs_partition* host)
 
 	ERR_IF_FREE2(readc != (ssize_t)map->length, DFS_FAILED_DEVICE_READ, map->map, map, ERR_MSG_DEVICE_READ_FAIL);
 
-	host->blockMap = map;
+	host->usage_map = map;
 
 	return DFS_SUCCESS;
 }
 
-dfs_err get_blk_used(const dfs_partition *pt, uint32_t blockIndex, bool *used)
+dfs_err get_blk_used(const dfs_partition *pt, uint32_t blk_idx, bool *used)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(used, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(used));
-	ERR_IF(blockIndex >= pt->blockCount, DFS_NVAL_ARGS, "Argument 'blockIndex' must be smaller than total block count.\n");
+	ERR_IF(blk_idx >= pt->blk_count, DFS_NVAL_ARGS, "Argument 'blk_idx' must be smaller than total block count.\n");
 
-	uint32_t offset = blockIndex & 0x7; 
-	uint32_t index = blockIndex & ~0x7;
+	uint32_t offset = blk_idx & 0x7; 
+	uint32_t index = blk_idx & ~0x7;
 
-	*used = pt->blockMap->map[index] & (1 << offset);
+	*used = pt->usage_map->map[index] & (1 << offset);
 
 	return DFS_SUCCESS;
 }
 
-dfs_err set_blk_used(const dfs_partition *pt, uint32_t blockIndex, bool used)
+dfs_err set_blk_used(const dfs_partition *pt, uint32_t blk_idx, bool used)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
-	ERR_IF(blockIndex >= pt->blockCount, DFS_NVAL_ARGS, "Argument 'blockIndex' must be smaller than total block count.\n");
+	ERR_IF(blk_idx >= pt->blk_count, DFS_NVAL_ARGS, "Argument 'blk_idx' must be smaller than total block count.\n");
 
-	uint32_t offset = blockIndex & 0x7; 
-	uint32_t index = blockIndex & ~0x7;
+	uint32_t offset = blk_idx & 0x7; 
+	uint32_t index = blk_idx & ~0x7;
 
 	if (used)
-		pt->blockMap->map[index] |= (1 << offset);
+		pt->usage_map->map[index] |= (1 << offset);
 	else
-		pt->blockMap->map[index] &= ~(1 << offset);
+		pt->usage_map->map[index] &= ~(1 << offset);
 
 	return DFS_SUCCESS;
 }
@@ -331,9 +331,9 @@ dfs_err flush_full_blk_map(const dfs_partition *pt)
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
 	device_seek(SEEK_SET, sizeof(partition_header), pt);
-	size_t written = device_write(pt->blockMap->map, pt->blockMap->length, pt);
+	size_t written = device_write(pt->usage_map->map, pt->usage_map->length, pt);
 
-	ERR_IF(written != pt->blockMap->length, DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
+	ERR_IF(written != pt->usage_map->length, DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
 
 	return DFS_SUCCESS;
 }
@@ -342,8 +342,8 @@ dfs_err destroy_blk_map(dfs_partition *pt)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
-	free(pt->blockMap->map);
-	free(pt->blockMap);
+	free(pt->usage_map->map);
+	free(pt->usage_map);
 
 	return DFS_SUCCESS;
 }
@@ -386,9 +386,9 @@ inline ssize_t device_write_at_blk(const blk_idx_t index, void *buffer, const si
 	device_seek(SEEK_SET, addr, partition);
 	return device_write(buffer, len, partition);
 }
-inline ssize_t device_write_at_entry_loc(const entry_ptr_loc entryLoc, entry_pointer *buffer, const dfs_partition *partition)
+inline ssize_t device_write_at_entry_loc(const entry_ptr_loc entry_loc, entry_pointer *buffer, const dfs_partition *partition)
 {
-	size_t addr = entry_loc_to_addr(partition, entryLoc);
+	size_t addr = entry_loc_to_addr(partition, entry_loc);
 	device_seek(SEEK_SET, addr, partition);
 	return device_write(buffer, sizeof(entry_pointer), partition);
 }
@@ -408,9 +408,9 @@ inline ssize_t device_read_at_blk(const blk_idx_t index, void *buffer, const siz
 	device_seek(SEEK_SET, addr, partition);
 	return device_read(buffer, len, partition);
 }
-inline ssize_t device_read_at_entry_loc(const entry_ptr_loc entryLoc, void *buffer, const dfs_partition *partition)
+inline ssize_t device_read_at_entry_loc(const entry_ptr_loc entry_loc, void *buffer, const dfs_partition *partition)
 {
-	size_t addr = entry_loc_to_addr(partition, entryLoc);
+	size_t addr = entry_loc_to_addr(partition, entry_loc);
 	device_seek(SEEK_SET, addr, partition);
 	return device_read(buffer, sizeof(entry_pointer), partition);
 }
@@ -436,7 +436,7 @@ dfs_err force_allocate_space(const char *device, size_t size)
 #pragma region Block-Address abstraction
 size_t blk_idx_to_addr(const dfs_partition *partition, const blk_idx_t index)
 {
-	return partition->rootBlockAddr + (size_t)index * BLOCK_SIZE;
+	return partition->root_blk_addr + (size_t)index * BLOCK_SIZE;
 }
 
 size_t blk_off_to_addr(const dfs_partition *partition, const blk_idx_t index, const size_t offset)
@@ -444,58 +444,58 @@ size_t blk_off_to_addr(const dfs_partition *partition, const blk_idx_t index, co
 	return blk_idx_to_addr(partition, index) + sizeof(block_header) + offset;
 }
 
-size_t entry_loc_to_addr(const dfs_partition *partition, const entry_ptr_loc entryLoc)
+size_t entry_loc_to_addr(const dfs_partition *partition, const entry_ptr_loc entry_loc)
 {
-	if (entryLoc.blockIndex == ~0u && entryLoc.entryIndex == ~0u)
-		return partition->rootBlockAddr - sizeof(entry_pointer);
+	if (entry_loc.blk_idx == ~0u && entry_loc.entry_idx == ~0u)
+		return partition->root_blk_addr - sizeof(entry_pointer);
 
-	size_t baseAddress = blk_idx_to_addr(partition, entryLoc.blockIndex);
-	size_t offset = sizeof(block_header) + sizeof(entry_pointer) * entryLoc.entryIndex;
+	size_t base_address = blk_idx_to_addr(partition, entry_loc.blk_idx);
+	size_t offset = sizeof(block_header) + sizeof(entry_pointer) * entry_loc.entry_idx;
 
-	return baseAddress + offset;
+	return base_address + offset;
 }
 
 entry_ptr_loc get_root_loc()
 {
-	entry_ptr_loc loc = { .blockIndex = ~0u, .entryIndex = ~0u };
+	entry_ptr_loc loc = { .blk_idx = ~0u, .entry_idx = ~0u };
 	return loc;
 }
 #pragma endregion
 #pragma region Code naming
-size_t determine_first_blk_addr(uint32_t blockMapSize)
+size_t determine_first_blk_addr(uint32_t usage_map_size)
 {
-	size_t withoutPad = (size_t)blockMapSize + sizeof(partition_header) + sizeof(entry_pointer);
-	size_t rem = withoutPad & (SECTOR_SIZE - 1);
+	size_t without_pad = (size_t)usage_map_size + sizeof(partition_header) + sizeof(entry_pointer);
+	size_t rem = without_pad & (SECTOR_SIZE - 1);
 
-	return withoutPad + (rem ? SECTOR_SIZE - rem : 0);
+	return without_pad + (rem ? SECTOR_SIZE - rem : 0);
 }
 
-size_t determine_size_from_blk_count(size_t blockCount)
+size_t determine_size_from_blk_count(size_t blk_count)
 {
-	size_t blockMapSize = blockCount >> 3;
+	size_t usage_map_size = blk_count >> 3;
 
 	//DTS = DaTa Start
-	size_t DTS = determine_first_blk_addr(blockMapSize);
+	size_t dts = determine_first_blk_addr(usage_map_size);
 
-	return DTS + blockCount * BLOCK_SIZE;
+	return dts + blk_count * BLOCK_SIZE;
 }
 
-size_t determine_blk_count(size_t maxSize, size_t *partitionSize)
+size_t determine_blk_count(size_t maxSize, size_t *partition_size)
 {
 	size_t max = MAX_BLKS, min = 0;
-	size_t current = 0, totalSize = 0;
-	int iterCount = 0; //Iteration limiter, should not be needed
+	size_t current = 0, total_size = 0;
+	int iter_count = 0; //Iteration limiter, should not be needed
 	
-	while (iterCount < 64)
+	while (iter_count < 64)
 	{
-		iterCount++;
+		iter_count++;
 
 		current = (min + max) >> 1;
-		totalSize = determine_size_from_blk_count(current);
+		total_size = determine_size_from_blk_count(current);
 
-		if (totalSize < maxSize)
+		if (total_size < maxSize)
 			min = current;
-		else if (totalSize > maxSize)
+		else if (total_size > maxSize)
 			max = current;
 		else
 			goto return_value;
@@ -510,32 +510,32 @@ size_t determine_blk_count(size_t maxSize, size_t *partitionSize)
 	return ~0;
 
 return_value:
-	if (partitionSize)
-		*partitionSize = determine_size_from_blk_count(current);
+	if (partition_size)
+		*partition_size = determine_size_from_blk_count(current);
 
 	return current;
 }
 
-dfs_err init_empty_partition(const char *device, size_t blockCount)
+dfs_err init_empty_partition(const char *device, size_t blk_count)
 {
 	ERR_NULL(device, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(device));
-	ERR_IF(blockCount == 0, DFS_NVAL_ARGS, "Argument 'blockCount' must not be 0.\n");
+	ERR_IF(blk_count == 0, DFS_NVAL_ARGS, "Argument 'blk_count' must not be 0.\n");
 
 	int file = open(device, O_RDWR | O_SYNC);
 
 	ERR_IF(file == -1, DFS_NVAL_ARGS, ERR_MSG_DEVICE_OPEN_FAIL);
 
 	//Write header
-	partition_header header = { .magicNumber = MAGIC_NUMBER,
-		.blockMapSize = blockCount >> 3 };
+	partition_header header = { .magic_number = MAGIC_NUMBER,
+		.usage_map_size = blk_count >> 3 };
 
 	size_t written = write(file, &header, sizeof(partition_header));
 
 	ERR_IF_CLEANUP(written != sizeof(partition_header),
 		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
 
-	char rootUsed = 1;
-	written = write(file, &rootUsed, 1);
+	char root_used = 1;
+	written = write(file, &root_used, 1);
 	ERR_IF_CLEANUP(written != 1,
 		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
 
@@ -555,30 +555,30 @@ dfs_err validate_partition_header(const dfs_partition* pt)
 	ERR_IF(readc != sizeof(partition_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
 	//Check magic number
-	ERR_IF(buff.magicNumber != MAGIC_NUMBER, DFS_CORRUPTED_FS, "Partition has incorrect magic number.\n");
+	ERR_IF(buff.magic_number != MAGIC_NUMBER, DFS_CORRUPTED_FS, "Partition has incorrect magic number.\n");
 
 	//Check reserved
 	ERR_IF(buff.resvd != 0, DFS_CORRUPTED_FS, "Partition has reserved flags set.\n");
 
-	//Check blockCount will not overflow
-	ERR_IF(buff.blockMapSize > (~0u >> 3), DFS_CORRUPTED_FS, "Partition blockMapSize is too big.\n");
+	//Check blk_count will not overflow
+	ERR_IF(buff.usage_map_size> (~0u >> 3), DFS_CORRUPTED_FS, "Partition usage_map_size is too big.\n");
 
 	return DFS_SUCCESS;
 }
 
 dfs_err set_stream_pos(size_t position, DFileStream *fs)
 {
-	ERR_IF(position > fs->fileSize, DFS_NVAL_SEEK, "Attempted to seek beyond file boundaries.\n");
+	ERR_IF(position > fs->file_size, DFS_NVAL_SEEK, "Attempted to seek beyond file boundaries.\n");
 
-	size_t curPos = 0, left;
-	uint32_t curBlock = fs->firstBlockIdx;
-	block_header curHeader;
+	size_t cur_pos = 0, left;
+	uint32_t cur_blk = fs->first_blkIdx;
+	block_header cur_header;
 	ssize_t readc;
 
-	while (curPos != position)
+	while (cur_pos != position)
 	{
-		left = curPos - position;
-		readc = device_read_at_blk(curBlock, &curHeader, sizeof(block_header), fs->pt);
+		left = cur_pos - position;
+		readc = device_read_at_blk(cur_blk, &cur_header, sizeof(block_header), fs->pt);
 		ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
 		if (left >= BLOCK_DATA_SIZE) //Full block skip
@@ -586,7 +586,7 @@ dfs_err set_stream_pos(size_t position, DFileStream *fs)
 			//No need to check for next block, checked by first ERR_IF
 
 			position += BLOCK_DATA_SIZE;
-			curBlock = curHeader.nextBlock;
+			cur_blk = cur_header.next_blk;
 		}
 		else //Partial block advance
 		{
@@ -595,14 +595,14 @@ dfs_err set_stream_pos(size_t position, DFileStream *fs)
 		}
 	}
 
-	fs->curBlockIdx = curBlock;
-	fs->filePos = curPos;
+	fs->cur_blkIdx = cur_blk;
+	fs->file_pos = cur_pos;
 
 	return DFS_SUCCESS;
 }
 #pragma endregion
 #pragma region Block navigation
-dfs_err find_entry_ptr(const dfs_partition* pt, const char *path, entry_pointer *entry, entry_ptr_loc *entryLoc)
+dfs_err find_entry_ptr(const dfs_partition* pt, const char *path, entry_pointer *entry, entry_ptr_loc *entry_loc)
 {
 	//This is the 'intermediate' method
 	//Validates arguments and initiates recursion
@@ -622,24 +622,24 @@ dfs_err find_entry_ptr(const dfs_partition* pt, const char *path, entry_pointer 
 			*entry = e;
 		}
 
-		if (entryLoc)
-			*entryLoc = loc;
+		if (entry_loc)
+			*entry_loc = loc;
 
 		return DFS_SUCCESS;
 	}
 
-	return find_entry_ptr_recursion(pt, 0, path, entry, entryLoc);
+	return find_entry_ptr_recursion(pt, 0, path, entry, entry_loc);
 }
 
-dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t curBlock, const char *path, entry_pointer *entry, entry_ptr_loc *entryLoc)
+dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t cur_blk, const char *path, entry_pointer *entry, entry_ptr_loc *entry_loc)
 {
 	char root[MAX_PATH_NAME + 1];
 	char tail[MAX_PATH + 1];
-	char *searchName;
-	char searchForDir;
-	entry_pointer *entries = NULL, foundEntry = { 0 };
+	char *search_name;
+	char search_for_dir;
+	entry_pointer *entries = NULL, found_entry = { 0 };
 	entry_ptr_loc location = { 0 };
-	block_header curHeader = { 0 };
+	block_header cur_header = { 0 };
 	uint32_t nextIdx = 0;
 	ssize_t readc;
 
@@ -651,18 +651,18 @@ dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t curBlo
 
 	if (!dfs_path_is_empty(root)) //Looking for dir
 	{
-		searchForDir = ENTRY_FLAG_DIR;
-		searchName = root;
+		search_for_dir = ENTRY_FLAG_DIR;
+		search_name = root;
 	}
 	else //Looking for file
 	{
-		searchForDir = 0;
-		searchName = tail;
+		search_for_dir = 0;
+		search_name = tail;
 	}
 
 	//Read current block entries
-	device_seek(SEEK_SET, blk_idx_to_addr(pt, curBlock), pt); //TODO: Handle errors
-	readc = device_read(&curHeader, sizeof(block_header), pt);
+	device_seek(SEEK_SET, blk_idx_to_addr(pt, cur_blk), pt); //TODO: Handle errors
+	readc = device_read(&cur_header, sizeof(block_header), pt);
 	ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL)
 
 	entries = malloc(ENTRIES_PER_BLK * sizeof(entry_pointer));
@@ -671,24 +671,24 @@ dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t curBlo
 	readc = device_read(entries, ENTRIES_PER_BLK * sizeof(entry_pointer), pt); //TODO: Handle errors
 	ERR_IF(readc != ENTRIES_PER_BLK * sizeof(entry_pointer), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL)
 
-	//TODO: Possibly validate header usedSpace is multiple of sizeof(entry_pointer)
-	int validEntryCount = curHeader.usedSpace / sizeof(entry_pointer);
+	//TODO: Possibly validate header used_space is multiple of sizeof(entry_pointer)
+	int valid_entry_count = cur_header.used_space / sizeof(entry_pointer);
 
 	//Search entries for dir/file
-	for (int i = 0; i < validEntryCount; i++)
+	for (int i = 0; i < valid_entry_count; i++)
 	{
 		//Filter out dir/files as needed
-		if ((entries[i].flags & ENTRY_FLAG_DIR) != searchForDir)
+		if ((entries[i].flags & ENTRY_FLAG_DIR) != search_for_dir)
 			continue;
 
 		//Filter out not matching names (at most one should match)
-		if (strncmp(searchName, entries[i].name, MAX_PATH_NAME))
+		if (strncmp(search_name, entries[i].name, MAX_PATH_NAME))
 			continue;
 
-		nextIdx = entries[i].firstBlock;
-		foundEntry = entries[i];
-		location.blockIndex = curBlock;
-		location.entryIndex = i;
+		nextIdx = entries[i].first_blk;
+		found_entry = entries[i];
+		location.blk_idx = cur_blk;
+		location.entry_idx = i;
 		break;
 	}
 
@@ -696,20 +696,20 @@ dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t curBlo
 
 	if (!nextIdx) //Couldn't find dir/file in current block
 	{
-		ERR_IF(!curHeader.nextBlock, DFS_PATH_NOT_FOUND, "Could not find '%s' in '%s'.\n", searchName, path);
+		ERR_IF(!cur_header.next_blk, DFS_PATH_NOT_FOUND, "Could not find '%s' in '%s'.\n", search_name, path);
 
-		return find_entry_ptr_recursion(pt, curHeader.nextBlock, path, entry, entryLoc);
+		return find_entry_ptr_recursion(pt, cur_header.next_blk, path, entry, entry_loc);
 	}
 	else //Found dir/file
 	{
 		if (nextIdx && strlen(root)) //It's not final, continue search on next block
-			return find_entry_ptr_recursion(pt, nextIdx, tail, entry, entryLoc);
+			return find_entry_ptr_recursion(pt, nextIdx, tail, entry, entry_loc);
 		else //It's the requested dir/file, return index
 		{
 			if (entry)
-				*entry = foundEntry;
-			if (entryLoc)
-				*entryLoc = location;
+				*entry = found_entry;
+			if (entry_loc)
+				*entry_loc = location;
 			return DFS_SUCCESS;
 		}
 	}
@@ -723,8 +723,8 @@ dfs_err find_free_blk(const dfs_partition *pt, blk_idx_t *index)
 	int err;
 	uint32_t i;
 
-	//TODO: Optimize to use blockMap byte searches (8 bits at a time)
-	for (i = 0; i < pt->blockCount; i++)
+	//TODO: Optimize to use usage_map byte searches (8 bits at a time)
+	for (i = 0; i < pt->blk_count; i++)
 	{
 		bool used;
 		ERR_NZERO((err = get_blk_used(pt, i, &used)), err, "Failed to retrieve block usage state.\n");
@@ -740,97 +740,97 @@ dfs_err find_free_blk(const dfs_partition *pt, blk_idx_t *index)
 }
 #pragma endregion
 #pragma region Block manipulation
-dfs_err append_blk_to_file(const dfs_partition *pt, const entry_ptr_loc entryLoc, blk_idx_t *newBlkIdx)
+dfs_err append_blk_to_file(const dfs_partition *pt, const entry_ptr_loc entry_loc, blk_idx_t *new_blk_idx)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
 	int err; ssize_t readc;
-	uint32_t newBlockIndex, oldBlockIndex;
+	uint32_t new_blk_idx, old_block_index;
 	entry_pointer entry;
-	block_header newBlock, oldBlock;
+	block_header new_blk, old_block;
 
 	//Find block and reserve
-	ERR_NZERO((err = find_free_blk(pt, &newBlockIndex)), err, "Could not find a free block.\n");
-	ERR_NZERO((err = set_blk_used(pt, newBlockIndex, true)), err, "Coult not flag block as used.\n");
+	ERR_NZERO((err = find_free_blk(pt, &new_blk_idx)), err, "Could not find a free block.\n");
+	ERR_NZERO((err = set_blk_used(pt, new_blk_idx, true)), err, "Coult not flag block as used.\n");
 	ERR_NZERO((err = flush_full_blk_map(pt)), err, "Failed to flush block map.\n");
 
 	//Read entry pointer
-	readc = device_read_at_entry_loc(entryLoc, &entry, pt);
+	readc = device_read_at_entry_loc(entry_loc, &entry, pt);
 	ERR_IF(readc != sizeof(entry_pointer), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL); //TODO: Revert block set to used
 
 	//Update last block index in entry
-	oldBlockIndex = entry.lastBlock;
-	entry.lastBlock = newBlockIndex;
+	old_block_index = entry.last_blk;
+	entry.last_blk = new_blk_idx;
 
 	//Flush changes
-	readc = device_write_at_entry_loc(entryLoc, &entry, pt);
+	readc = device_write_at_entry_loc(entry_loc, &entry, pt);
 	ERR_IF(readc != sizeof(entry_pointer), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL); //TODO: Revert block set to used
 
 	//Create new block header
-	newBlock.nextBlock = 0;
-	newBlock.prevBlock = oldBlockIndex;
-	newBlock.usedSpace = 0;
-	newBlock.resvd = 0;
+	new_blk.next_blk = 0;
+	new_blk.prev_blk = old_block_index;
+	new_blk.used_space = 0;
+	new_blk.resvd = 0;
 
 	//Store new block
-	readc = device_write_at_blk(newBlockIndex, &newBlock, sizeof(block_header), pt);
+	readc = device_write_at_blk(new_blk_idx, &new_blk, sizeof(block_header), pt);
 	ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
 
 	//Read old block
-	readc = device_read_at_blk(oldBlockIndex, &oldBlock, sizeof(block_header), pt);
+	readc = device_read_at_blk(old_block_index, &old_block, sizeof(block_header), pt);
 	ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
 	//Update index
-	oldBlock.nextBlock = newBlockIndex;
+	old_block.next_blk = new_blk_idx;
 
 	//Flush changes
-	readc = device_write_at_blk(oldBlockIndex, &oldBlock, sizeof(block_header), pt);
+	readc = device_write_at_blk(old_block_index, &old_block, sizeof(block_header), pt);
 	ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
 
-	if (newBlkIdx)
-		*newBlkIdx = newBlockIndex;
+	if (new_blk_idx)
+		*new_blk_idx = new_blk_idx;
 
 	return DFS_SUCCESS;
 }
 
-dfs_err append_entry_to_dir(const dfs_partition *pt, const entry_ptr_loc dirEntryLoc, entry_pointer newEntry)
+dfs_err append_entry_to_dir(const dfs_partition *pt, const entry_ptr_loc dir_entryLoc, entry_pointer new_entry)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
-	entry_pointer dirEntry;
-	block_header dirBlock;
-	uint32_t blockIndex;
+	entry_pointer dir_entry;
+	block_header dir_blk;
+	uint32_t blk_idx;
 	int err; ssize_t readc;
 
 	//Read dir entry
-	readc = device_read_at_entry_loc(dirEntryLoc, &dirEntry, pt);
+	readc = device_read_at_entry_loc(dir_entryLoc, &dir_entry, pt);
 	ERR_IF(readc != sizeof(entry_pointer), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
 	//Load last block
-	blockIndex = dirEntry.lastBlock;
-	readc = device_read_at_blk(blockIndex, &dirBlock, sizeof(block_header), pt);
+	blk_idx = dir_entry.last_blk;
+	readc = device_read_at_blk(blk_idx, &dir_blk, sizeof(block_header), pt);
 	ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
-	if (dirBlock.usedSpace + sizeof(entry_pointer) >= BLOCK_DATA_SIZE) //No free space
+	if (dir_blk.used_space + sizeof(entry_pointer) >= BLOCK_DATA_SIZE) //No free space
 	{
 		//Append block and update block index
-		ERR_NZERO((err = append_blk_to_file(pt, dirEntryLoc, &blockIndex)), err, "Failed to append block to file.\n");
+		ERR_NZERO((err = append_blk_to_file(pt, dir_entryLoc, &blk_idx)), err, "Failed to append block to file.\n");
 
 		//Load new block
-		readc = device_read_at_blk(blockIndex, &dirBlock, sizeof(block_header), pt);
+		readc = device_read_at_blk(blk_idx, &dir_blk, sizeof(block_header), pt);
 		ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL); //TODO: Revert changes
 	}
 
 	//Write new entry pointer
-	size_t addr = blk_off_to_addr(pt, blockIndex, dirBlock.usedSpace);
-	readc = device_write_at(addr, &newEntry, sizeof(entry_pointer), pt);
+	size_t addr = blk_off_to_addr(pt, blk_idx, dir_blk.used_space);
+	readc = device_write_at(addr, &new_entry, sizeof(entry_pointer), pt);
 	ERR_IF(readc != sizeof(entry_pointer), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL); //TODO: Revert changes
 
 	//Update block header
-	dirBlock.usedSpace += (uint32_t)sizeof(entry_pointer);
+	dir_blk.used_space += (uint32_t)sizeof(entry_pointer);
 
 	//Flush header changes
-	readc = device_write_at_blk(blockIndex, &dirBlock, sizeof(block_header), pt);
+	readc = device_write_at_blk(blk_idx, &dir_blk, sizeof(block_header), pt);
 	ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL); //TODO: Revert changes
 
 	return DFS_SUCCESS;
@@ -839,46 +839,46 @@ dfs_err append_entry_to_dir(const dfs_partition *pt, const entry_ptr_loc dirEntr
 #pragma region File manipulation
 dfs_err create_object(dfs_partition *pt, const char *path, const uint16_t flags)
 {
-	char parentDir[MAX_PATH + 1];
+	char parent_dir[MAX_PATH + 1];
 	char name[MAX_PATH_NAME + 1];
 
 	int err;
-	entry_pointer newEntry = { 0 };
-	entry_ptr_loc parentLoc;
-	block_header newBlock;
-	uint32_t newBlockIndex;
+	entry_pointer new_entry = { 0 };
+	entry_ptr_loc parent_loc;
+	block_header new_blk;
+	uint32_t new_blk_idx;
 	ssize_t readc;
 
-	dfs_path_get_parent(parentDir, path);
+	dfs_path_get_parent(parent_dir, path);
 	dfs_path_get_name(name, path);
 
 	//Find parent dir
-	ERR_NZERO((err = find_entry_ptr(pt, parentDir, NULL, &parentLoc)), err, "Could not find entry for the requested file.\n");
+	ERR_NZERO((err = find_entry_ptr(pt, parent_dir, NULL, &parent_loc)), err, "Could not find entry for the requested file.\n");
 
 	//Find and reserve free block
-	ERR_NZERO((err = find_free_blk(pt, &newBlockIndex)), err, "Could not find free block.\n");
-	ERR_NZERO((err = set_blk_used(pt, newBlockIndex, true)), err, "Could not flag block as used.\n");
+	ERR_NZERO((err = find_free_blk(pt, &new_blk_idx)), err, "Could not find free block.\n");
+	ERR_NZERO((err = set_blk_used(pt, new_blk_idx, true)), err, "Could not flag block as used.\n");
 	ERR_NZERO((err = flush_full_blk_map(pt)), err, "Could not flush block map.\n");
 
 	//Create new entry
-	memset(newEntry.name, 0, MAX_PATH_NAME);
-	strncpy(newEntry.name, name, MAX_PATH_NAME);
-	newEntry.firstBlock = newBlockIndex;
-	newEntry.lastBlock = newBlockIndex;
-	newEntry.resvd = 0;
-	newEntry.flags = flags;
+	memset(new_entry.name, 0, MAX_PATH_NAME);
+	strncpy(new_entry.name, name, MAX_PATH_NAME);
+	new_entry.first_blk = new_blk_idx;
+	new_entry.last_blk = new_blk_idx;
+	new_entry.resvd = 0;
+	new_entry.flags = flags;
 
 	//Append entry to parent
-	ERR_NZERO((err = append_entry_to_dir(pt, parentLoc, newEntry)), err, "Could not append entry to directory.\n");
+	ERR_NZERO((err = append_entry_to_dir(pt, parent_loc, new_entry)), err, "Could not append entry to directory.\n");
 
 	//Set new block header
-	newBlock.nextBlock = 0;
-	newBlock.prevBlock = 0;
-	newBlock.usedSpace = 0;
-	newBlock.resvd = 0;
+	new_blk.next_blk = 0;
+	new_blk.prev_blk = 0;
+	new_blk.used_space = 0;
+	new_blk.resvd = 0;
 
 	//Flush changes
-	readc = device_write_at_blk(newBlockIndex, &newBlock, sizeof(block_header), pt);
+	readc = device_write_at_blk(new_blk_idx, &new_blk, sizeof(block_header), pt);
 	ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
 
 	return DFS_SUCCESS;
@@ -891,16 +891,16 @@ dfs_err determine_file_size(dfs_partition *pt, const entry_pointer entry, size_t
 
 	size_t counter = 0;
 	ssize_t readc;
-	block_header curBlock;
-	uint32_t blockIndex = entry.firstBlock;
+	block_header cur_blk;
+	uint32_t blk_idx = entry.first_blk;
 
-	while (blockIndex) //First should always go through since there should be no entries with null/root block
+	while (blk_idx) //First should always go through since there should be no entries with null/root block
 	{
-		readc = device_read_at_blk(blockIndex, &curBlock, sizeof(block_header), pt);
+		readc = device_read_at_blk(blk_idx, &cur_blk, sizeof(block_header), pt);
 		ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
-		counter += curBlock.usedSpace; //In theory all but last should be full
-		blockIndex = curBlock.nextBlock;
+		counter += cur_blk.used_space; //In theory all but last should be full
+		blk_idx = cur_blk.next_blk;
 	}
 	
 	*size = counter;
