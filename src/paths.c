@@ -1,11 +1,11 @@
 //dPaths.c - Implements DPaths.c
 
-#include "dPaths.h"
+#include "paths.h"
 
 #include <stdlib.h>
 #include <string.h>
 
-#include "errUtils.h"
+#include "err_utils.h"
 
 
 

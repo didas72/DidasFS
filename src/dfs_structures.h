@@ -6,9 +6,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "didasFS.h"
+#include "dfs.h"
 #include "structures/hashmap.h"
-#include "dPaths.h"
+#include "paths.h"
 
 #define SECTOR_SIZE 512
 #define BLOCK_SIZE 32768

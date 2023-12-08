@@ -9,11 +9,11 @@
 #include <string.h>
 #include <stddef.h>
 
-#include "didasFS.h"
-#include "didasFS_structures.h"
-#include "didasFS_internals.h"
-#include "dPaths.h"
-#include "errUtils.h"
+#include "dfs.h"
+#include "dfs_structures.h"
+#include "dfs_internals.h"
+#include "paths.h"
+#include "err_utils.h"
 
 
 

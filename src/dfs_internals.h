@@ -7,8 +7,8 @@
 #include <stddef.h>
 #include <unistd.h>
 
-#include "didasFS.h"
-#include "didasFS_structures.h"
+#include "dfs.h"
+#include "dfs_structures.h"
 
 
 #pragma region Block-Address abstraction
