@@ -25,7 +25,7 @@
 //= Function implementations =
 //============================
 #pragma region Function implementations
-DFS_err dpcreate(const char *device, size_t totalSize)
+dfs_err dpcreate(const char *device, size_t totalSize)
 {
 	ERR_NULL(device, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(device));
 	ERR_IF(totalSize == 0, DFS_NVAL_ARGS, "Argument 'totalSize' cannot be 0.\n");
@@ -42,14 +42,14 @@ DFS_err dpcreate(const char *device, size_t totalSize)
 	return DFS_SUCCESS;
 }
 
-DFS_err dpopen(const char *device, DPartition **ptHandle)
+dfs_err dpopen(const char *device, dfs_partition **ptHandle)
 {
 	ERR_NULL(ptHandle, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(ptHandle));
 
 	*ptHandle = NULL;
 	int err;
 
-	DPartition* pt = malloc(sizeof(DPartition));
+	dfs_partition* pt = malloc(sizeof(dfs_partition));
 	ERR_NULL(pt, DFS_FAILED_ALLOC, ERR_MSG_ALLOC_FAIL);
 
 	pt->device = open(device, O_RDWR | O_SYNC);
@@ -77,7 +77,7 @@ DFS_err dpopen(const char *device, DPartition **ptHandle)
 	return DFS_SUCCESS;
 }
 
-DFS_err dpclose(DPartition *ptHandle)
+dfs_err dpclose(dfs_partition *ptHandle)
 {
 	ERR_NULL(ptHandle, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(ptHandle));
 
@@ -91,17 +91,17 @@ DFS_err dpclose(DPartition *ptHandle)
 	return DFS_SUCCESS;
 }
 
-DFS_err ddcreate(DPartition *pt, const char *path)
+dfs_err ddcreate(dfs_partition *pt, const char *path)
 {
 	return create_object(pt, path, ENTRY_FLAG_DIR | ENTRY_FLAG_READWRITE);
 }
 
-DFS_err dfcreate(DPartition *pt, const char *path)
+dfs_err dfcreate(dfs_partition *pt, const char *path)
 {
 	return create_object(pt, path, ENTRY_FLAG_FILE | ENTRY_FLAG_READWRITE);
 }
 
-DFS_err dfopen(DPartition *pt, const char *path, DFileStream **fsHandle)
+dfs_err dfopen(dfs_partition *pt, const char *path, DFileStream **fsHandle)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(fsHandle, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fsHandle));
@@ -128,7 +128,7 @@ DFS_err dfopen(DPartition *pt, const char *path, DFileStream **fsHandle)
 	return DFS_SUCCESS;
 }
 
-DFS_err dfclose(DFileStream *fs)
+dfs_err dfclose(DFileStream *fs)
 {
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
 
@@ -140,7 +140,7 @@ DFS_err dfclose(DFileStream *fs)
 	return DFS_SUCCESS;
 }
 
-DFS_err dfwrite(void *buffer, size_t len, DFileStream *fs, size_t *written)
+dfs_err dfwrite(void *buffer, size_t len, DFileStream *fs, size_t *written)
 {
 	ERR_NULL(buffer, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(buffer));
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
@@ -209,7 +209,7 @@ DFS_err dfwrite(void *buffer, size_t len, DFileStream *fs, size_t *written)
 	return DFS_SUCCESS;
 }
 
-DFS_err dfread(void *buffer, size_t len, DFileStream *fs, size_t *readc)
+dfs_err dfread(void *buffer, size_t len, DFileStream *fs, size_t *readc)
 {
 	ERR_NULL(buffer, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(buffer));
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
@@ -260,7 +260,7 @@ DFS_err dfread(void *buffer, size_t len, DFileStream *fs, size_t *readc)
 	return DFS_SUCCESS;
 }
 
-DFS_err dfseek(size_t pos, DFileStream *fs)
+dfs_err dfseek(size_t pos, DFileStream *fs)
 {
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
 
@@ -273,7 +273,7 @@ DFS_err dfseek(size_t pos, DFileStream *fs)
 //= _structures function implementations =
 //========================================
 #pragma region _structures function implementations
-DFS_err load_blk_map(DPartition* host)
+dfs_err load_blk_map(dfs_partition* host)
 {
 	ERR_NULL(host, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(host));
 
@@ -296,7 +296,7 @@ DFS_err load_blk_map(DPartition* host)
 	return DFS_SUCCESS;
 }
 
-DFS_err get_blk_used(const DPartition *pt, uint32_t blockIndex, bool *used)
+dfs_err get_blk_used(const dfs_partition *pt, uint32_t blockIndex, bool *used)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(used, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(used));
@@ -310,7 +310,7 @@ DFS_err get_blk_used(const DPartition *pt, uint32_t blockIndex, bool *used)
 	return DFS_SUCCESS;
 }
 
-DFS_err set_blk_used(const DPartition *pt, uint32_t blockIndex, bool used)
+dfs_err set_blk_used(const dfs_partition *pt, uint32_t blockIndex, bool used)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_IF(blockIndex >= pt->blockCount, DFS_NVAL_ARGS, "Argument 'blockIndex' must be smaller than total block count.\n");
@@ -326,7 +326,7 @@ DFS_err set_blk_used(const DPartition *pt, uint32_t blockIndex, bool used)
 	return DFS_SUCCESS;
 }
 
-DFS_err flush_full_blk_map(const DPartition *pt)
+dfs_err flush_full_blk_map(const dfs_partition *pt)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
@@ -338,7 +338,7 @@ DFS_err flush_full_blk_map(const DPartition *pt)
 	return DFS_SUCCESS;
 }
 
-DFS_err destroy_blk_map(DPartition *pt)
+dfs_err destroy_blk_map(dfs_partition *pt)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
@@ -366,56 +366,56 @@ void dfilestream_deallocator(void *stream)
 //= Internal function implementations =
 //=====================================
 #pragma region Device helpers
-inline off_t device_seek(const int whence, const size_t offset, const DPartition *partition)
+inline off_t device_seek(const int whence, const size_t offset, const dfs_partition *partition)
 {
 	return lseek(partition->device, offset, whence);
 }
 
-inline ssize_t device_write(void *buffer, const size_t len, const DPartition *partition)
+inline ssize_t device_write(void *buffer, const size_t len, const dfs_partition *partition)
 {
 	return write(partition->device, buffer, len);
 }
-inline ssize_t device_write_at(const size_t addr, void *buffer, const size_t len, const DPartition *partition)
+inline ssize_t device_write_at(const size_t addr, void *buffer, const size_t len, const dfs_partition *partition)
 {
 	device_seek(SEEK_SET, addr, partition);
 	return device_write(buffer, len, partition);
 }
-inline ssize_t device_write_at_blk(const blk_idx_t index, void *buffer, const size_t len, const DPartition *partition)
+inline ssize_t device_write_at_blk(const blk_idx_t index, void *buffer, const size_t len, const dfs_partition *partition)
 {
 	size_t addr = blk_idx_to_addr(partition, index);
 	device_seek(SEEK_SET, addr, partition);
 	return device_write(buffer, len, partition);
 }
-inline ssize_t device_write_at_entry_loc(const EntryPointerLoc entryLoc, EntryPointer *buffer, const DPartition *partition)
+inline ssize_t device_write_at_entry_loc(const EntryPointerLoc entryLoc, EntryPointer *buffer, const dfs_partition *partition)
 {
 	size_t addr = entry_loc_to_addr(partition, entryLoc);
 	device_seek(SEEK_SET, addr, partition);
 	return device_write(buffer, sizeof(EntryPointer), partition);
 }
 
-inline ssize_t device_read(void *buffer, const size_t len, const DPartition *partition)
+inline ssize_t device_read(void *buffer, const size_t len, const dfs_partition *partition)
 {
 	return read(partition->device, buffer, len);
 }
-inline ssize_t device_read_at(const size_t addr, void *buffer, const size_t len, const DPartition *partition)
+inline ssize_t device_read_at(const size_t addr, void *buffer, const size_t len, const dfs_partition *partition)
 {
 	device_seek(SEEK_SET, addr, partition);
 	return device_read(buffer, len, partition);
 }
-inline ssize_t device_read_at_blk(const blk_idx_t index, void *buffer, const size_t len, const DPartition *partition)
+inline ssize_t device_read_at_blk(const blk_idx_t index, void *buffer, const size_t len, const dfs_partition *partition)
 {
 	size_t addr = blk_idx_to_addr(partition, index);
 	device_seek(SEEK_SET, addr, partition);
 	return device_read(buffer, len, partition);
 }
-inline ssize_t device_read_at_entry_loc(const EntryPointerLoc entryLoc, void *buffer, const DPartition *partition)
+inline ssize_t device_read_at_entry_loc(const EntryPointerLoc entryLoc, void *buffer, const dfs_partition *partition)
 {
 	size_t addr = entry_loc_to_addr(partition, entryLoc);
 	device_seek(SEEK_SET, addr, partition);
 	return device_read(buffer, sizeof(EntryPointer), partition);
 }
 
-DFS_err force_allocate_space(const char *device, size_t size)
+dfs_err force_allocate_space(const char *device, size_t size)
 {
 	ERR_NULL(device, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(device));
 	ERR_IF(size == 0, DFS_NVAL_ARGS, "Argument 'size' must not be 0.\n");
@@ -434,17 +434,17 @@ DFS_err force_allocate_space(const char *device, size_t size)
 }
 #pragma endregion
 #pragma region Block-Address abstraction
-size_t blk_idx_to_addr(const DPartition *partition, const blk_idx_t index)
+size_t blk_idx_to_addr(const dfs_partition *partition, const blk_idx_t index)
 {
 	return partition->rootBlockAddr + (size_t)index * BLOCK_SIZE;
 }
 
-size_t blk_off_to_addr(const DPartition *partition, const blk_idx_t index, const size_t offset)
+size_t blk_off_to_addr(const dfs_partition *partition, const blk_idx_t index, const size_t offset)
 {
 	return blk_idx_to_addr(partition, index) + sizeof(BlockHeader) + offset;
 }
 
-size_t entry_loc_to_addr(const DPartition *partition, const EntryPointerLoc entryLoc)
+size_t entry_loc_to_addr(const dfs_partition *partition, const EntryPointerLoc entryLoc)
 {
 	if (entryLoc.blockIndex == ~0u && entryLoc.entryIndex == ~0u)
 		return partition->rootBlockAddr - sizeof(EntryPointer);
@@ -516,7 +516,7 @@ return_value:
 	return current;
 }
 
-DFS_err init_empty_partition(const char *device, size_t blockCount)
+dfs_err init_empty_partition(const char *device, size_t blockCount)
 {
 	ERR_NULL(device, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(device));
 	ERR_IF(blockCount == 0, DFS_NVAL_ARGS, "Argument 'blockCount' must not be 0.\n");
@@ -544,7 +544,7 @@ DFS_err init_empty_partition(const char *device, size_t blockCount)
 	return DFS_SUCCESS;
 }
 
-DFS_err validate_partition_header(const DPartition* pt)
+dfs_err validate_partition_header(const dfs_partition* pt)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
@@ -566,7 +566,7 @@ DFS_err validate_partition_header(const DPartition* pt)
 	return DFS_SUCCESS;
 }
 
-DFS_err set_stream_pos(size_t position, DFileStream *fs)
+dfs_err set_stream_pos(size_t position, DFileStream *fs)
 {
 	ERR_IF(position > fs->fileSize, DFS_NVAL_SEEK, "Attempted to seek beyond file boundaries.\n");
 
@@ -602,7 +602,7 @@ DFS_err set_stream_pos(size_t position, DFileStream *fs)
 }
 #pragma endregion
 #pragma region Block navigation
-DFS_err find_entry_ptr(const DPartition* pt, const char *path, EntryPointer *entry, EntryPointerLoc *entryLoc)
+dfs_err find_entry_ptr(const dfs_partition* pt, const char *path, EntryPointer *entry, EntryPointerLoc *entryLoc)
 {
 	//This is the 'intermediate' method
 	//Validates arguments and initiates recursion
@@ -631,7 +631,7 @@ DFS_err find_entry_ptr(const DPartition* pt, const char *path, EntryPointer *ent
 	return find_entry_ptr_recursion(pt, 0, path, entry, entryLoc);
 }
 
-DFS_err find_entry_ptr_recursion(const DPartition* pt, const blk_idx_t curBlock, const char *path, EntryPointer *entry, EntryPointerLoc *entryLoc)
+dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t curBlock, const char *path, EntryPointer *entry, EntryPointerLoc *entryLoc)
 {
 	char root[MAX_PATH_NAME + 1];
 	char tail[MAX_PATH + 1];
@@ -715,7 +715,7 @@ DFS_err find_entry_ptr_recursion(const DPartition* pt, const blk_idx_t curBlock,
 	}
 }
 
-DFS_err find_free_blk(const DPartition *pt, blk_idx_t *index)
+dfs_err find_free_blk(const dfs_partition *pt, blk_idx_t *index)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(index, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(index));
@@ -740,7 +740,7 @@ DFS_err find_free_blk(const DPartition *pt, blk_idx_t *index)
 }
 #pragma endregion
 #pragma region Block manipulation
-DFS_err append_blk_to_file(const DPartition *pt, const EntryPointerLoc entryLoc, blk_idx_t *newBlkIdx)
+dfs_err append_blk_to_file(const dfs_partition *pt, const EntryPointerLoc entryLoc, blk_idx_t *newBlkIdx)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
@@ -793,7 +793,7 @@ DFS_err append_blk_to_file(const DPartition *pt, const EntryPointerLoc entryLoc,
 	return DFS_SUCCESS;
 }
 
-DFS_err append_entry_to_dir(const DPartition *pt, const EntryPointerLoc dirEntryLoc, EntryPointer newEntry)
+dfs_err append_entry_to_dir(const dfs_partition *pt, const EntryPointerLoc dirEntryLoc, EntryPointer newEntry)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
@@ -837,7 +837,7 @@ DFS_err append_entry_to_dir(const DPartition *pt, const EntryPointerLoc dirEntry
 }
 #pragma endregion
 #pragma region File manipulation
-DFS_err create_object(DPartition *pt, const char *path, const uint16_t flags)
+dfs_err create_object(dfs_partition *pt, const char *path, const uint16_t flags)
 {
 	char parentDir[MAX_PATH + 1];
 	char name[MAX_PATH_NAME + 1];
@@ -884,7 +884,7 @@ DFS_err create_object(DPartition *pt, const char *path, const uint16_t flags)
 	return DFS_SUCCESS;
 }
 
-DFS_err determine_file_size(DPartition *pt, const EntryPointer entry, size_t *size)
+dfs_err determine_file_size(dfs_partition *pt, const EntryPointer entry, size_t *size)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(size, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(size));
@@ -909,7 +909,7 @@ DFS_err determine_file_size(DPartition *pt, const EntryPointer entry, size_t *si
 }
 #pragma endregion
 #pragma region File handles
-DFS_err handle_can_open(DPartition *pt, const char *path, const DFS_filem_flags flags)
+dfs_err handle_can_open(dfs_partition *pt, const char *path, const dfs_filem_flags flags)
 {	return DFS_NOT_IMPLEMENTED;
 
 }

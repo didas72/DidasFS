@@ -38,7 +38,7 @@ typedef struct
 {
 	size_t length;
 	uint8_t *map;
-	DPartition *host;
+	dfs_partition *host;
 } BlockMap;
 
 //Set to -1, -1 for root
@@ -50,20 +50,20 @@ typedef struct
 
 
 //==="Public" logical representations===
-typedef struct DPartition
+typedef struct dfs_partition
 {
 	int device;
 	size_t rootBlockAddr;
 	uint32_t blockCount;
 	BlockMap *blockMap;
 	Hashmap *fileHandles;
-} _DPartition;
+} _dfs_partition;
 
-typedef struct DFileHandle
+typedef struct dfs_file
 {
 	//Handle tracking
 	char path[MAX_PATH];
-	DFS_filem_flags flags;
+	dfs_filem_flags flags;
 
 	//Positioning
 	size_t head;
@@ -72,7 +72,7 @@ typedef struct DFileHandle
 	EntryPointerLoc entry_loc;
 
 	//Partition not needed, will be passed to every call
-} _DFileHandle;
+} _dfs_file;
 
 
 //==="Physical" representations===
@@ -102,10 +102,10 @@ typedef struct
 
 
 //"Private" logical representation methods
-DFS_err load_blk_map(DPartition *host);
-DFS_err get_blk_used(const DPartition *pt, blk_idx_t blockIndex, bool *used);
-DFS_err set_blk_used(const DPartition *pt, blk_idx_t blockIndex, bool used);
-DFS_err flush_full_blk_map(const DPartition *pt);
-//int FlushBlockMapChanges(DPartition *pt);
-DFS_err destroy_blk_map(DPartition *pt);
+dfs_err load_blk_map(dfs_partition *host);
+dfs_err get_blk_used(const dfs_partition *pt, blk_idx_t blockIndex, bool *used);
+dfs_err set_blk_used(const dfs_partition *pt, blk_idx_t blockIndex, bool used);
+dfs_err flush_full_blk_map(const dfs_partition *pt);
+//int FlushBlockMapChanges(dfs_partition *pt);
+dfs_err destroy_blk_map(dfs_partition *pt);
 #endif

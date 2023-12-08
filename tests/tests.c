@@ -51,7 +51,7 @@ MU_TEST_SUITE(dpath_all)
 //===Hand testing stuff===
 void HandTest()
 {
-	DPartition *pt;
+	dfs_partition *pt;
 	DFileStream *fs;
 	int err;
 	size_t size = (1 << 15) + 1024;
