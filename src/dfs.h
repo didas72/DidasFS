@@ -64,7 +64,7 @@ typedef struct dfs_file dfs_file;
  * @param dataSize The size of the data space to allocate
  * @return int containing the error code for the operation
  */
-dfs_err dpcreate(const char *device, size_t totalSize);
+dfs_err dfs_pcreate(const char *device, size_t totalSize);
 /**
  * @brief Opens an existing partition from a file/device
  * 
@@ -72,14 +72,14 @@ dfs_err dpcreate(const char *device, size_t totalSize);
  * @param ptHandle Pointer to a partition handle pointer
  * @return int containing the error code for the operation
  */
-dfs_err dpopen(const char *device, dfs_partition **ptHandle);
+dfs_err dfs_popen(const char *device, dfs_partition **ptHandle);
 /**
  * @brief Closes an open partition, releasing all associated resources
  * 
  * @param ptHandle Pointer to a partition handle
  * @return int containing the error code for the operation
  */
-dfs_err dpclose(dfs_partition *ptHandle);
+dfs_err dfs_pclose(dfs_partition *ptHandle);
 
 /**
  * @brief Creates an empty directory at the specified path
@@ -96,7 +96,7 @@ dfs_err ddcreate(dfs_partition *pt, const char *path);
  * @param path Path of the directory to be created
  * @return int containing the error code for the operation
  */
-dfs_err dfcreate(dfs_partition *pt, const char *path);
+dfs_err dfs_fcreate(dfs_partition *pt, const char *path);
 
 /**
  * @brief Opens an existing file at the specified path
@@ -106,14 +106,14 @@ dfs_err dfcreate(dfs_partition *pt, const char *path);
  * @param fsHandle Pointer to the file handle pointer to populate
  * @return int containing the error code for the operation
  */
-dfs_err dfopen(dfs_partition *pt, const char *path, const dfs_filem_flags flags, int *handle);
+dfs_err dfs_fopen(dfs_partition *pt, const char *path, const dfs_filem_flags flags, int *handle);
 /**
  * @brief Closes an open file handle and flushes and buffered changes
  * 
  * @param fs Pointer to the file handle to be closed
  * @return int containing the error code for the operation
  */
-dfs_err dfclose(dfs_partition *pt, int handle);
+dfs_err dfs_fclose(dfs_partition *pt, int handle);
 
 /**
  * @brief Writes a block of data to a stream
@@ -124,7 +124,7 @@ dfs_err dfclose(dfs_partition *pt, int handle);
  * @param written Referenced variable will be set to the actual number of bytes written
  * @return int containing the error code for the operation
  */
-dfs_err dfwrite(dfs_partition *pt, int handle, void *buffer, size_t len, size_t *written);
+dfs_err dfs_fwrite(dfs_partition *pt, int handle, void *buffer, size_t len, size_t *written);
 /**
  * @brief Reads a block of data from a stream
  * 
@@ -134,7 +134,7 @@ dfs_err dfwrite(dfs_partition *pt, int handle, void *buffer, size_t len, size_t 
  * @param written Referenced variable will be set to the actual number of bytes read
  * @return int containing the error code for the operation
  */
-dfs_err dfread(dfs_partition *pt, int handle, void *buffer, size_t len, size_t *read);
+dfs_err dfs_fread(dfs_partition *pt, int handle, void *buffer, size_t len, size_t *read);
 /**
  * @brief Sets the stream position
  * 
@@ -142,5 +142,5 @@ dfs_err dfread(dfs_partition *pt, int handle, void *buffer, size_t len, size_t *
  * @param fs Pointer to the file handle to modify
  * @return int containing the error code for the operation
  */
-dfs_err dfseek(dfs_partition *pt, int handle, size_t pos /*TODO: WHENCE and return position*/);
+dfs_err dfs_fseek(dfs_partition *pt, int handle, size_t pos /*TODO: WHENCE and return position*/);
 #endif

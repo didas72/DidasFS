@@ -4,11 +4,11 @@ REWORK: Use descriptors and errno-type or enum error system:
 
 * Remove DFileStreams and switch to internal descriptors
 * DPartition must track open file handles
-* dfopen must not allow opening of directories as files
-* dfopen must register file handle
-* dfopen must check for already open handles
-* dfopen must check file flags and match handle type
-* dfclose must remove file handle
+* dfs_fopen must not allow opening of directories as files
+* dfs_fopen must register file handle
+* dfs_fopen must check for already open handles
+* dfs_fopen must check file flags and match handle type
+* dfs_fclose must remove file handle
 
 ADD FEATURE: Implement target interfaces:
 

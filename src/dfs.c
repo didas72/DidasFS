@@ -25,7 +25,7 @@
 //= Function implementations =
 //============================
 #pragma region Function implementations
-dfs_err dpcreate(const char *device, size_t totalSize)
+dfs_err dfs_pcreate(const char *device, size_t totalSize)
 {
 	ERR_NULL(device, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(device));
 	ERR_IF(totalSize == 0, DFS_NVAL_ARGS, "Argument 'totalSize' cannot be 0.\n");
@@ -42,7 +42,7 @@ dfs_err dpcreate(const char *device, size_t totalSize)
 	return DFS_SUCCESS;
 }
 
-dfs_err dpopen(const char *device, dfs_partition **ptHandle)
+dfs_err dfs_popen(const char *device, dfs_partition **ptHandle)
 {
 	ERR_NULL(ptHandle, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(ptHandle));
 
@@ -77,7 +77,7 @@ dfs_err dpopen(const char *device, dfs_partition **ptHandle)
 	return DFS_SUCCESS;
 }
 
-dfs_err dpclose(dfs_partition *ptHandle)
+dfs_err dfs_pclose(dfs_partition *ptHandle)
 {
 	ERR_NULL(ptHandle, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(ptHandle));
 
@@ -96,12 +96,12 @@ dfs_err ddcreate(dfs_partition *pt, const char *path)
 	return create_object(pt, path, ENTRY_FLAG_DIR | ENTRY_FLAG_READWRITE);
 }
 
-dfs_err dfcreate(dfs_partition *pt, const char *path)
+dfs_err dfs_fcreate(dfs_partition *pt, const char *path)
 {
 	return create_object(pt, path, ENTRY_FLAG_FILE | ENTRY_FLAG_READWRITE);
 }
 
-dfs_err dfopen(dfs_partition *pt, const char *path, DFileStream **fsHandle)
+dfs_err dfs_fopen(dfs_partition *pt, const char *path, DFileStream **fsHandle)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(fsHandle, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fsHandle));
@@ -128,7 +128,7 @@ dfs_err dfopen(dfs_partition *pt, const char *path, DFileStream **fsHandle)
 	return DFS_SUCCESS;
 }
 
-dfs_err dfclose(DFileStream *fs)
+dfs_err dfs_fclose(DFileStream *fs)
 {
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
 
@@ -140,7 +140,7 @@ dfs_err dfclose(DFileStream *fs)
 	return DFS_SUCCESS;
 }
 
-dfs_err dfwrite(void *buffer, size_t len, DFileStream *fs, size_t *written)
+dfs_err dfs_fwrite(void *buffer, size_t len, DFileStream *fs, size_t *written)
 {
 	ERR_NULL(buffer, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(buffer));
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
@@ -209,7 +209,7 @@ dfs_err dfwrite(void *buffer, size_t len, DFileStream *fs, size_t *written)
 	return DFS_SUCCESS;
 }
 
-dfs_err dfread(void *buffer, size_t len, DFileStream *fs, size_t *readc)
+dfs_err dfs_fread(void *buffer, size_t len, DFileStream *fs, size_t *readc)
 {
 	ERR_NULL(buffer, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(buffer));
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
@@ -260,7 +260,7 @@ dfs_err dfread(void *buffer, size_t len, DFileStream *fs, size_t *readc)
 	return DFS_SUCCESS;
 }
 
-dfs_err dfseek(size_t pos, DFileStream *fs)
+dfs_err dfs_fseek(size_t pos, DFileStream *fs)
 {
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
 

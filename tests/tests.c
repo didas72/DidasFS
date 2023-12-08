@@ -39,7 +39,7 @@ MU_TEST(get_name)
 	mu_assert_string_eq("Joel", DPathGetName(buff, "Joel"));
 }
 
-MU_TEST_SUITE(dpath_all)
+MU_TEST_SUITE(dfs_path_all)
 {
 	MU_RUN_TEST(combine);
 	MU_RUN_TEST(get_parent);
@@ -58,33 +58,33 @@ void HandTest()
 	char *data = malloc(size);
 	memset(data, 0x69, size);
 
-	if ((err = dpcreate("./device.hex", 32768 * 32)))
+	if ((err = dfs_pcreate("./device.hex", 32768 * 32)))
 	{ printf("Error initting partition: %d.\n", err); return; }
 
-	if ((err = dpopen("./device.hex", &pt)))
+	if ((err = dfs_popen("./device.hex", &pt)))
 	{ printf("Error opening partition: %d.\n", err); return; }
 
-	if ((err = dfcreate(pt, "Cock & Ball Torture")))
+	if ((err = dfs_fcreate(pt, "Cock & Ball Torture")))
 	{ printf("Error creating file: %d.\n", err); return; }
 
-	if ((err = dfopen(pt, "Cock & Ball Torture", &fs)))
+	if ((err = dfs_fopen(pt, "Cock & Ball Torture", &fs)))
 	{ printf("Error opening file: %d.\n", err); return; }
 
-	if ((err = dfwrite(data, size, fs, NULL)))
+	if ((err = dfs_fwrite(data, size, fs, NULL)))
 	{ printf("Error writing to file: %d.\n", err); return; }
 
 	memset(data, 0x42, size);
 
-	if ((err = dfwrite(data, size, fs, NULL)))
+	if ((err = dfs_fwrite(data, size, fs, NULL)))
 	{ printf("Error writing to file 2: %d.\n", err); return; }
 
-	if ((err = dfclose(fs)))
+	if ((err = dfs_fclose(fs)))
 	{ printf("Error closing file: %d.\n", err); return; }
 
-	if ((err = dfopen(pt, "Cock & Ball Torture", &fs)))
+	if ((err = dfs_fopen(pt, "Cock & Ball Torture", &fs)))
 	{ printf("Error opening file 2: %d.\n", err); return; }
 
-	if ((err = dfread(data, size, fs, NULL)))
+	if ((err = dfs_fread(data, size, fs, NULL)))
 	{ printf("Error reading from file: %d.\n", err); return; }
 
 	for (size_t i = 0; i < size; i++)
@@ -96,7 +96,7 @@ void HandTest()
 		}
 	}
 
-	if ((err = dfread(data, size, fs, NULL)))
+	if ((err = dfs_fread(data, size, fs, NULL)))
 	{ printf("Error reading from file 2: %d.\n", err); return; }
 
 	for (size_t i = 0; i < size; i++)
@@ -108,10 +108,10 @@ void HandTest()
 		}
 	}
 
-	if ((err = dfclose(fs)))
+	if ((err = dfs_fclose(fs)))
 	{ printf("Error closing file 2: %d.\n", err); return; }
 
-	if ((err = dpclose(pt)))
+	if ((err = dfs_pclose(pt)))
 	{ printf("Error closing partition: %d.\n", err); return; }
 
 	printf("Finished successfully.\n");
@@ -124,7 +124,7 @@ void HandTest()
 int main()
 {
 	//Test framework
-	MU_RUN_SUITE(dpath_all);
+	MU_RUN_SUITE(dfs_path_all);
 	MU_REPORT();
 
 	printf("Hand tests:\n");
