@@ -11,11 +11,11 @@
 ///@brief Holds an error code
 typedef int DFS_err;
 ///@brief Holds file mode flags
-typedef DFS_filem_flags DFS_filem_flags;
+typedef uint32_t DFS_filem_flags;
 ///@brief Represents a partition handle
 typedef struct DPartition DPartition;
 ///@brief Represents a file handle
-typedef struct DFileStream DFileStream;
+typedef struct DFileHandle DFileHandle;
 
 
 //===Error codes===

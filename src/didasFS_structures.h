@@ -28,7 +28,6 @@
 
 
 
-typedef uint32_t DFS_filem_flags;
 typedef uint32_t blk_idx_t;
 typedef uint16_t file_flags_t;
 
@@ -74,18 +73,6 @@ typedef struct DFileHandle
 
 	//Partition not needed, will be passed to every call
 } _DFileHandle;
-
-//TODO: Decomission
-typedef struct DFileStream
-{
-	//Position in file
-	size_t filePos;
-	size_t fileSize;
-	blk_idx_t curBlockIdx, firstBlockIdx, lastBlockIdx;
-	uint16_t streamFlags;
-	EntryPointerLoc entryLoc;
-	DPartition *pt;
-} _DFileStream;
 
 
 //==="Physical" representations===
