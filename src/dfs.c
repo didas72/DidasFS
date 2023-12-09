@@ -954,7 +954,7 @@ bool object_is_writable(entry_pointer entry)
 #pragma endregion
 #pragma region File handles
 dfs_err handle_can_open(dfs_partition *pt, const char *path, const dfs_filem_flags flags, bool *can_open)
-{//TODO: Test
+{
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(path, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(path));
 	ERR_NULL(can_open, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(can_open));

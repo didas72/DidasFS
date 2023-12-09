@@ -52,8 +52,8 @@ MU_TEST_SUITE(dfs_dfs_path_all)
 void HandTest()
 {
 	dfs_partition *pt;
-	DFileStream *fs;
-	int err;
+	int descriptor;
+	dfs_err err;
 	size_t size = (1 << 15) + 1024;
 	char *data = malloc(size);
 	memset(data, 0x69, size);
@@ -67,24 +67,24 @@ void HandTest()
 	if ((err = dfs_fcreate(pt, "Cock & Ball Torture")))
 	{ printf("Error creating file: %d.\n", err); return; }
 
-	if ((err = dfs_fopen(pt, "Cock & Ball Torture", &fs)))
+	if ((err = dfs_fopen(pt, "Cock & Ball Torture", DFS_FILEM_WRITE, &descriptor)))
 	{ printf("Error opening file: %d.\n", err); return; }
 
-	if ((err = dfs_fwrite(data, size, fs, NULL)))
+	if ((err = dfs_fwrite(pt, descriptor, data, size, NULL)))
 	{ printf("Error writing to file: %d.\n", err); return; }
 
 	memset(data, 0x42, size);
 
-	if ((err = dfs_fwrite(data, size, fs, NULL)))
+	if ((err = dfs_fwrite(pt, descriptor, data, size, NULL)))
 	{ printf("Error writing to file 2: %d.\n", err); return; }
 
-	if ((err = dfs_fclose(fs)))
+	if ((err = dfs_fclose(pt, descriptor)))
 	{ printf("Error closing file: %d.\n", err); return; }
 
-	if ((err = dfs_fopen(pt, "Cock & Ball Torture", &fs)))
+	if ((err = dfs_fopen(pt, "Cock & Ball Torture", DFS_FILEM_READ, &descriptor)))
 	{ printf("Error opening file 2: %d.\n", err); return; }
 
-	if ((err = dfs_fread(data, size, fs, NULL)))
+	if ((err = dfs_fread(pt, descriptor, data, size, NULL)))
 	{ printf("Error reading from file: %d.\n", err); return; }
 
 	for (size_t i = 0; i < size; i++)
@@ -96,7 +96,7 @@ void HandTest()
 		}
 	}
 
-	if ((err = dfs_fread(data, size, fs, NULL)))
+	if ((err = dfs_fread(pt, descriptor, data, size, NULL)))
 	{ printf("Error reading from file 2: %d.\n", err); return; }
 
 	for (size_t i = 0; i < size; i++)
@@ -108,7 +108,7 @@ void HandTest()
 		}
 	}
 
-	if ((err = dfs_fclose(fs)))
+	if ((err = dfs_fclose(pt, descriptor)))
 	{ printf("Error closing file 2: %d.\n", err); return; }
 
 	if ((err = dfs_pclose(pt)))

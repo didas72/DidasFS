@@ -61,8 +61,10 @@ typedef struct dfs_file dfs_file;
 //===File mode flags===
 #define DFS_FILEM_READ (dfs_filem_flags)0x00000001
 #define DFS_FILEM_WRITE (dfs_filem_flags)0x000000002
+#define DFS_FILEM_RDWR (dfs_filem_flags)0x000000003
 #define DFS_FILEM_SHARE_READ (dfs_filem_flags)0x00000004
 #define DFS_FILEM_SHARE_WRITE (dfs_filem_flags)0x00000008
+#define DFS_FILEM_SHARE_RDWR (dfs_filem_flags)0x0000000C
 
 
 
