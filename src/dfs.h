@@ -7,7 +7,7 @@
 #include <stdint.h>
 
 
-
+//===Types===
 ///@brief Holds an error code
 typedef int dfs_err;
 ///@brief Holds file mode flags
@@ -16,6 +16,10 @@ typedef uint32_t dfs_filem_flags;
 typedef struct dfs_partition dfs_partition;
 ///@brief Represents a file handle
 typedef struct dfs_file dfs_file;
+
+
+//===Constants===
+#define DFS_MAX_HANDLES 64
 
 
 //===Error codes===
@@ -47,15 +51,16 @@ typedef struct dfs_file dfs_file;
 #define DFS_NO_SPACE (dfs_err)11
 ///@brief Function received an invalid seek position
 #define DFS_NVAL_SEEK (dfs_err)12
-///@brief Requested file could not be opened due to access restrictions.
+///@brief Operation on requested file failed due to access restrictions.
 #define DFS_UNAUTHORIZED_ACCESS (dfs_err)13
+///@brief Attempted to access an invalid descriptor.
+#define DFS_NVAL_DESCRIPTOR (dfs_err)14
 
 //===File mode flags===
-#define DFS_READ (dfs_filem_flags)0x0001
-#define DFS_WRITE (dfs_filem_flags)0x0002
-#define DFS_SHARE_READ (dfs_filem_flags)0x0004
-///@brief [NOT IMPLEMENTED]
-#define DFS_NO_BUFFERING (dfs_filem_flags)0x0800
+#define DFS_FILEM_READ (dfs_filem_flags)0x00000001
+#define DFS_FILEM_WRITE (dfs_filem_flags)0x000000002
+#define DFS_FILEM_SHARE_READ (dfs_filem_flags)0x00000004
+#define DFS_FILEM_SHARE_WRITE (dfs_filem_flags)0x00000008
 
 
 

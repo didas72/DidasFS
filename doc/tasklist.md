@@ -1,6 +1,6 @@
 # TODO list
 
-REWORK: Use descriptors and errno-type or enum error system:
+REWORK: Replace generic hashmap with specific for handles
 
 * Remove DFileStreams and switch to internal descriptors
 * DPartition must track open file handles

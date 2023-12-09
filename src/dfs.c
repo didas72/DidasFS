@@ -17,10 +17,6 @@
 
 
 
-#define BASE_FILEHANDLE_CAPACITY 64
-
-
-
 //============================
 //= Function implementations =
 //============================
@@ -71,7 +67,7 @@ dfs_err dfs_popen(const char *device, dfs_partition **pt_handle)
 	ERR_NZERO_CLEANUP_FREE1((err = load_blk_map(pt)), err, close(pt->device), pt, "Failed to load block map.\n");
 
 	pt->lowest_used_descriptor = 0;
-	pt->open_handles = hashmap_create(file_descriptor_hasher, dfs_file_deallocator, BASE_FILEHANDLE_CAPACITY);
+	pt->open_handles = hashmap_create(file_descriptor_hasher, dfs_file_deallocator, DFS_MAX_HANDLES);
 	ERR_NULL_CLEANUP_FREE1(pt->open_handles, DFS_FAILED_ALLOC, close(pt->device); destroy_blk_map(pt), pt, ERR_MSG_ALLOC_FAIL);
 
 	*pt_handle = pt;
@@ -108,19 +104,23 @@ dfs_err dfs_fopen(dfs_partition *pt, const char *path, const dfs_filem_flags fla
 	ERR_NULL(path, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(path));
 	ERR_NULL(descriptor, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(descriptor));
 
+	*descriptor = -1;
+
 	dfs_err err;
 	bool can_open = false;
 	ERR_IF((err = handle_can_open(pt, path, flags, &can_open)), err, "Failed to test if file '%s' can be opened.\n", path);
-	ERR_IF(!can_open, DFS_UNAUTHORIZED_ACCESS, "Could not open file '%s' due to access restrictions.\n", path);
-
-	dfs_file *handle = malloc(sizeof(dfs_file));
-	ERR_NULL(handle, DFS_FAILED_ALLOC, ERR_MSG_ALLOC_FAIL);
+	ERR_IF(!can_open, DFS_UNAUTHORIZED_ACCESS, ERR_MSG_UNAUTHORIZED_ACCESS("open", path));
 
 	entry_pointer entry;
 	entry_ptr_loc entry_loc;
 	size_t file_size;
-	ERR_NZERO_FREE1((err = find_entry_ptr(pt, path, &entry, &entry_loc)), err, handle, "Could not find entry for file '%s'.\n", path);
-	ERR_NZERO_FREE1((err = determine_file_size(pt, entry, &file_size)), err, handle, "Failed to determine file size.\n");
+	ERR_NZERO((err = find_entry_ptr(pt, path, &entry, &entry_loc)), err, "Could not find entry for file '%s'.\n", path);
+	ERR_NZERO((err = determine_file_size(pt, entry, &file_size)), err, "Failed to determine file size.\n");
+
+	ERR_IF(!object_is_file(entry) || !object_is_writable(entry), DFS_UNAUTHORIZED_ACCESS, ERR_MSG_UNAUTHORIZED_ACCESS("open", path));
+
+	dfs_file *handle = malloc(sizeof(dfs_file));
+	ERR_NULL(handle, DFS_FAILED_ALLOC, ERR_MSG_ALLOC_FAIL);
 
 	strcpy(handle->path, path);
 	handle->flags = flags;
@@ -131,7 +131,7 @@ dfs_err dfs_fopen(dfs_partition *pt, const char *path, const dfs_filem_flags fla
 	handle->entry_loc = entry_loc;
 
 	int new_descriptor = pt->lowest_used_descriptor++;
-	ERR_IF(!hashmap_add(pt->open_handles, &new_descriptor, handle), DFS_FAILED_ALLOC, ERR_MSG_ALLOC_FAIL);
+	ERR_IF_CLEANUP_FREE1(!hashmap_add(pt->open_handles, &new_descriptor, handle), DFS_FAILED_ALLOC, pt->lowest_used_descriptor--, handle, ERR_MSG_ALLOC_FAIL);
 
 	*descriptor = new_descriptor;
 	return DFS_SUCCESS;
@@ -139,13 +139,11 @@ dfs_err dfs_fopen(dfs_partition *pt, const char *path, const dfs_filem_flags fla
 
 dfs_err dfs_fclose(dfs_partition *pt, int descriptor)
 {
-	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
+	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
-	//TODO: Handle pt stuff with fs->pt
+	ERR_IF(!hashmap_has_key(pt->open_handles, &descriptor), DFS_NVAL_DESCRIPTOR, ERR_MSG_NVAL_DESCRIPTOR("close", descriptor));
 
-	//Will not be needed, deallocated by hashmap
-	free(fs);
-	
+	hashmap_remove(pt->open_handles, &descriptor);
 	return DFS_SUCCESS;
 }
 
@@ -356,7 +354,7 @@ dfs_err destroy_blk_map(dfs_partition *pt)
 	return DFS_SUCCESS;
 }
 
-int file_descriptor_hasher(void *descriptor)
+int file_descriptor_hasher(const void *descriptor)
 {
 	return *((int*)descriptor);
 }
@@ -918,6 +916,16 @@ dfs_err determine_file_size(dfs_partition *pt, const entry_pointer entry, size_t
 
 	return DFS_SUCCESS;
 }
+
+bool object_is_file(entry_pointer entry)
+{
+	return !(entry.flags & ENTRY_FLAG_DIR);
+}
+
+bool object_is_writable(entry_pointer entry)
+{
+	return !(entry.flags & ENTRY_FLAG_READONLY);
+}
 #pragma endregion
 #pragma region File handles
 dfs_err handle_can_open(dfs_partition *pt, const char *path, const dfs_filem_flags flags, bool *can_open)
@@ -950,5 +958,26 @@ dfs_err handle_can_open(dfs_partition *pt, const char *path, const dfs_filem_fla
 	free(open_handles);
 	*can_open = compatible;
 	return DFS_SUCCESS;
+}
+dfs_err handle_get(dfs_partition *pt, const int descriptor, dfs_file *file)
+{
+	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
+	ERR_NULL(file, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(file));
+
+	void *entry_ptr = hashmap_get(pt->open_handles, &descriptor);
+
+	ERR_NULL(entry_ptr, DFS_NVAL_DESCRIPTOR, ERR_MSG_NVAL_DESCRIPTOR("access", descriptor));
+
+	*file = *(dfs_file*)entry_ptr;
+	return DFS_SUCCESS;
+}
+bool handle_open_flags_compatible(const dfs_filem_flags new, const dfs_filem_flags open)
+{
+	if ((new & DFS_FILEM_READ) && !(open & DFS_FILEM_SHARE_READ))
+		return false;
+	if ((new & DFS_FILEM_WRITE) && !(open & DFS_FILEM_SHARE_WRITE))
+		return false;
+
+	return true;
 }
 #pragma endregion

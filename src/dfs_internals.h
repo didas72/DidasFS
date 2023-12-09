@@ -54,16 +54,16 @@ dfs_err append_entry_to_dir(const dfs_partition *pt, const entry_ptr_loc dir_ent
 #pragma region File manipulation
 dfs_err create_object(dfs_partition *pt, const char *path, const uint16_t flags);
 dfs_err determine_file_size(dfs_partition *pt, const entry_pointer entry, size_t *size);
+bool object_is_file(entry_pointer entry);
 #pragma endregion
 
 #pragma region File handles
 dfs_err handle_can_open(dfs_partition *pt, const char *path, const dfs_filem_flags flags, bool *can_open);
-dfs_err handle_close(dfs_partition *pt, const int descriptor);
-dfs_err handle_get(dfs_partition *pt, const int descriptor, dfs_file *fh);
+dfs_err handle_get(dfs_partition *pt, const int descriptor, dfs_file *file);
 
-dfs_err handle_open_flags_compatible(const dfs_filem_flags new, const dfs_filem_flags open);
+bool handle_open_flags_compatible(const dfs_filem_flags new, const dfs_filem_flags open);
 
-int file_descriptor_hasher(void *descriptor);
+int file_descriptor_hasher(const void *descriptor);
 void dfs_file_deallocator(void *file);
 #pragma endregion
 

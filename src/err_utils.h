@@ -8,10 +8,12 @@
 #define ERR_MSG(fmt, ...) { fprintf(stderr, fmt, ##__VA_ARGS__); }
 
 #define ERR_MSG_NULL_ARG(argname) "Argument '"#argname"' cannot be NULL.\n"
-#define ERR_MSG_ALLOC_FAIL "Could not allocate required memory space.\n"
+#define ERR_MSG_ALLOC_FAIL "Could not allocate required memory.\n"
 #define ERR_MSG_DEVICE_READ_FAIL "Could not read from device.\n"
 #define ERR_MSG_DEVICE_WRITE_FAIL "Could not write to device.\n"
 #define ERR_MSG_DEVICE_OPEN_FAIL "Could not open device stream.\n"
+#define ERR_MSG_UNAUTHORIZED_ACCESS(operation, path) "Could not " operation " file '%s' due to access restrictions.\n", path
+#define ERR_MSG_NVAL_DESCRIPTOR(operation, descriptor) "Cannot " operation " invalid descriptor '%d'.\n", descriptor
 
 #define ERR(errCode, fmt, ...) { ERR_MSG(fmt, ##__VA_ARGS__); return errCode; }
 

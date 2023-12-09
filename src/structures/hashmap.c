@@ -23,13 +23,13 @@ struct Hashmap
 	size_t capacity;
 	size_t count;
 	HashEntry *entries;
-	int (*hasher)(void*);
+	int (*hasher)(const void*);
 	void (*deallocator)(void *);
 };
 
 
 
-Hashmap* hashmap_create(int (*hasher)(void*), void (*deallocator)(void *), size_t init_capacity)
+Hashmap* hashmap_create(int (*hasher)(const void*), void (*deallocator)(void *), size_t init_capacity)
 {
 	Hashmap *ret = malloc(sizeof(Hashmap));
 
@@ -71,7 +71,7 @@ void hashmap_destroy(Hashmap *map)
 
 
 //Collision resolution strategy: separate chaining
-void *hashmap_get(Hashmap *map, void *key)
+void *hashmap_get(Hashmap *map, const void *key)
 {
 	if (!map)
 		return NULL;
@@ -140,7 +140,7 @@ bool hashmap_set(Hashmap *map, void *key, void *value)
 	return true;
 }
 
-bool hashmap_remove(Hashmap *map, void *key)
+bool hashmap_remove(Hashmap *map, const void *key)
 {
 	if (!map)
 		return false; //TODO: Better error
@@ -169,7 +169,7 @@ bool hashmap_remove(Hashmap *map, void *key)
 	return true;
 }
 
-bool hashmap_has_key(Hashmap *map, void *key)
+bool hashmap_has_key(Hashmap *map, const void *key)
 {
 	if (!map)
 		return false; //TODO: Better error
