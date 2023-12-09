@@ -14,6 +14,7 @@
 #define ERR_MSG_DEVICE_OPEN_FAIL "Could not open device stream.\n"
 #define ERR_MSG_UNAUTHORIZED_ACCESS(operation, path) "Could not " operation " file '%s' due to access restrictions.\n", path
 #define ERR_MSG_NVAL_DESCRIPTOR(operation, descriptor) "Cannot " operation " invalid descriptor '%d'.\n", descriptor
+#define ERR_MSG_HANDLE_FETCH_FAIL(descriptor) "Could not fetch handle for descriptor '%d'.\n", descriptor
 
 #define ERR(errCode, fmt, ...) { ERR_MSG(fmt, ##__VA_ARGS__); return errCode; }
 

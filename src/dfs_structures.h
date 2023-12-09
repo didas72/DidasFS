@@ -7,7 +7,6 @@
 #include <stdbool.h>
 
 #include "dfs.h"
-#include "structures/hashmap.h"
 #include "paths.h"
 
 #define SECTOR_SIZE 512
@@ -48,21 +47,10 @@ typedef struct
 	uint32_t entry_idx;
 } entry_ptr_loc;
 
-
-//==="Public" logical representations===
-typedef struct dfs_partition
-{
-	int device;
-	size_t root_blk_addr;
-	uint32_t blk_count;
-	blk_map *usage_map;
-	Hashmap *open_handles;
-	int lowest_used_descriptor;
-} _dfs_partition;
-
 typedef struct dfs_file
 {
 	//Handle tracking
+	bool present;
 	char path[MAX_PATH];
 	dfs_filem_flags flags;
 
@@ -72,6 +60,17 @@ typedef struct dfs_file
 	blk_idx_t cur_blk_idx, first_blk_idx, last_blk_idx;
 	entry_ptr_loc entry_loc;
 } _dfs_file;
+
+
+//==="Public" logical representations===
+typedef struct dfs_partition
+{
+	int device;
+	size_t root_blk_addr;
+	uint32_t blk_count;
+	blk_map *usage_map;
+	dfs_file open_handles[DFS_MAX_HANDLES];
+} _dfs_partition;
 
 
 //==="Physical" representations===
@@ -101,6 +100,8 @@ typedef struct
 
 
 //"Private" logical representation methods
+int get_lowest_unused_descriptor(const dfs_partition pt);
+
 dfs_err load_blk_map(dfs_partition *host);
 dfs_err get_blk_used(const dfs_partition *pt, blk_idx_t blk_idx, bool *used);
 dfs_err set_blk_used(const dfs_partition *pt, blk_idx_t blk_idx, bool used);

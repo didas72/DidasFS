@@ -37,7 +37,7 @@ size_t determine_size_from_blk_count(size_t blk_count);
 size_t determine_blk_count(size_t maxSize, size_t *partition_size);
 dfs_err init_empty_partition(const char *device, size_t blk_count);
 dfs_err validate_partition_header(const dfs_partition *pt);
-dfs_err set_stream_pos(size_t position, DFileStream *fs);
+dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file);
 #pragma endregion
 
 #pragma region Block navigation
@@ -59,9 +59,10 @@ bool object_is_file(entry_pointer entry);
 
 #pragma region File handles
 dfs_err handle_can_open(dfs_partition *pt, const char *path, const dfs_filem_flags flags, bool *can_open);
-dfs_err handle_get(dfs_partition *pt, const int descriptor, dfs_file *file);
+dfs_err handle_get(dfs_partition *pt, const int descriptor, dfs_file **file);
 
 bool handle_open_flags_compatible(const dfs_filem_flags new, const dfs_filem_flags open);
+bool object_is_writable(entry_pointer entry);
 
 int file_descriptor_hasher(const void *descriptor);
 void dfs_file_deallocator(void *file);

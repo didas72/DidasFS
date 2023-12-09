@@ -1,14 +1,9 @@
 # TODO list
 
-REWORK: Replace generic hashmap with specific for handles
+REMINDER: Cleanup TODO in code
 
-* Remove DFileStreams and switch to internal descriptors
-* DPartition must track open file handles
-* dfs_fopen must not allow opening of directories as files
-* dfs_fopen must register file handle
-* dfs_fopen must check for already open handles
-* dfs_fopen must check file flags and match handle type
-* dfs_fclose must remove file handle
+FIX: Tests broken with interface rewrite
+FIX: Writing to a file must update all related handles
 
 ADD FEATURE: Implement target interfaces:
 
@@ -16,8 +11,6 @@ ADD FEATURE: Implement target interfaces:
 * Management interface: mkdir, rmdir, create (touch), rmfile (rm)
 
 DOCS: Finish doxygen for dPaths.h
-
-REMINDER: Cleanup TODO in code
 
 TEST: Fail conditions
 TEST: Partition sizing

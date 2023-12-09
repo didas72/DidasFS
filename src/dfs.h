@@ -51,10 +51,12 @@ typedef struct dfs_file dfs_file;
 #define DFS_NO_SPACE (dfs_err)11
 ///@brief Function received an invalid seek position
 #define DFS_NVAL_SEEK (dfs_err)12
+///@brief Failed to open file because maximum number of open handles was reached.
+#define DFS_MAX_HANDLES_REACHED (dfs_err)13
 ///@brief Operation on requested file failed due to access restrictions.
-#define DFS_UNAUTHORIZED_ACCESS (dfs_err)13
+#define DFS_UNAUTHORIZED_ACCESS (dfs_err)14
 ///@brief Attempted to access an invalid descriptor.
-#define DFS_NVAL_DESCRIPTOR (dfs_err)14
+#define DFS_NVAL_DESCRIPTOR (dfs_err)15
 
 //===File mode flags===
 #define DFS_FILEM_READ (dfs_filem_flags)0x00000001
@@ -120,7 +122,7 @@ dfs_err dfs_fopen(dfs_partition *pt, const char *path, const dfs_filem_flags fla
  * @param fs Pointer to the file handle to be closed
  * @return int containing the error code for the operation
  */
-dfs_err dfs_fclose(dfs_partition *pt, int descriptor);
+dfs_err dfs_fclose(dfs_partition *pt, const int descriptor);
 
 /**
  * @brief Writes a block of data to a stream
@@ -131,7 +133,7 @@ dfs_err dfs_fclose(dfs_partition *pt, int descriptor);
  * @param written Referenced variable will be set to the actual number of bytes written
  * @return int containing the error code for the operation
  */
-dfs_err dfs_fwrite(dfs_partition *pt, int descriptor, void *buffer, size_t len, size_t *written);
+dfs_err dfs_fwrite(dfs_partition *pt, const int descriptor, const void *buffer, const size_t len, size_t *written);
 /**
  * @brief Reads a block of data from a stream
  * 
@@ -141,7 +143,7 @@ dfs_err dfs_fwrite(dfs_partition *pt, int descriptor, void *buffer, size_t len, 
  * @param written Referenced variable will be set to the actual number of bytes read
  * @return int containing the error code for the operation
  */
-dfs_err dfs_fread(dfs_partition *pt, int descriptor, void *buffer, size_t len, size_t *read);
+dfs_err dfs_fread(dfs_partition *pt, const int descriptor, const void *buffer, const size_t len, size_t *read);
 /**
  * @brief Sets the stream position
  * 
@@ -149,5 +151,5 @@ dfs_err dfs_fread(dfs_partition *pt, int descriptor, void *buffer, size_t len, s
  * @param fs Pointer to the file handle to modify
  * @return int containing the error code for the operation
  */
-dfs_err dfs_fseek(dfs_partition *pt, int descriptor, size_t pos /*TODO: WHENCE and return position*/);
+dfs_err dfs_fseek(dfs_partition *pt, const int descriptor, const size_t pos /*TODO: WHENCE and return position*/);
 #endif
