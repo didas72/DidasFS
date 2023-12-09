@@ -20,17 +20,7 @@ TSRCS=$(wildcard $(TEST)/*.c)
 TOBJS=$(patsubst $(TEST)/%.c, $(OBJ)/tests/%.o, $(TSRCS))
 
 
-.PHONY: all
-.PHONY: build
-.PHONY: build-tests
-.PHONY: test
-.PHONY: debug
-.PHONY: memleak
-.PHONY: release
-.PHONY: clean
-.PHONY: loc
-.PHONY: doc
-.PHONY: doc-clean
+.PHONY: all build build-tests test debug memleak release clean loc doc doc-clean
 
 
 all: $(OUTBIN)
@@ -77,7 +67,7 @@ clean:
 	$(RM) -r $(OBJ) $(BIN)
 
 loc:
-	scc -s lines --no-cocomo --no-gitignore -w --size-unit binary --exclude-ext md,makefile --exclude-dir tests/framework
+	scc -s lines --no-cocomo --no-gitignore -w --size-unit binary --exclude-dir tests/framework src
 
 doc:
 	doxygen Doxyfile
