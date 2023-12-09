@@ -19,11 +19,11 @@
 #define MAX_PARTITION_CAPACITY MAX_BLKS * BLOCK_DATA_SIZE
 
 #pragma region Entry flags
-#define ENTRY_FLAG_EMPTY 0x00
-#define ENTRY_FLAG_FILE 0x00
-#define ENTRY_FLAG_DIR 0x01
-#define ENTRY_FLAG_READWRITE 0x00
-#define ENTRY_FLAG_READONLY 0x02
+#define ENTRY_FLAG_EMPTY (file_flags_t)0x00
+#define ENTRY_FLAG_FILE (file_flags_t)0x00
+#define ENTRY_FLAG_DIR (file_flags_t)0x01
+#define ENTRY_FLAG_READWRITE (file_flags_t)0x00
+#define ENTRY_FLAG_READONLY (file_flags_t)0x02
 #pragma endregion
 
 
@@ -38,7 +38,6 @@ typedef struct
 {
 	size_t length;
 	uint8_t *map;
-	//dfs_partition *host;
 } blk_map;
 
 //Set to -1, -1 for root
@@ -57,6 +56,7 @@ typedef struct dfs_partition
 	uint32_t blk_count;
 	blk_map *usage_map;
 	Hashmap *open_handles;
+	int lowest_used_descriptor;
 } _dfs_partition;
 
 typedef struct dfs_file
@@ -70,7 +70,6 @@ typedef struct dfs_file
 	size_t file_size;
 	blk_idx_t cur_blk_idx, first_blk_idx, last_blk_idx;
 	entry_ptr_loc entry_loc;
-
 	//Partition not needed, will be passed to every call
 } _dfs_file;
 

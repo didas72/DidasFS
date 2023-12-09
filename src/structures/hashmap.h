@@ -8,7 +8,7 @@
 
 typedef struct Hashmap Hashmap;
 
-//TODO: Errors yay
+//TODO: Errors
 
 Hashmap* hashmap_create(int (*hasher)(void*), void (*deallocator)(void *), size_t init_capacity);
 void hashmap_destroy(Hashmap *map);
@@ -17,6 +17,9 @@ void *hashmap_get(Hashmap *map, void *key);
 bool hashmap_add(Hashmap *map, void *key, void *value);
 bool hashmap_set(Hashmap *map, void *key, void *value);
 bool hashmap_remove(Hashmap *map, void *key);
-bool hashmap_haskey(Hashmap *map, void *key);
+bool hashmap_has_key(Hashmap *map, void *key);
+
+size_t hashmap_get_count(Hashmap *map);
+size_t hashmap_get_values(Hashmap *map, void **values, size_t capacity);
 
 #endif

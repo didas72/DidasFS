@@ -13,14 +13,20 @@
 #define ERR_MSG_DEVICE_WRITE_FAIL "Could not write to device.\n"
 #define ERR_MSG_DEVICE_OPEN_FAIL "Could not open device stream.\n"
 
-#define ERR_IF 					ERR_NZERO
-#define ERR_IF_FREE1 			ERR_NZERO_FREE1
-#define ERR_IF_FREE2 			ERR_NZERO_FREE2
-#define ERR_IF_FREE3 			ERR_NZERO_FREE3
-#define ERR_IF_CLEANUP 			ERR_NZERO_CLEANUP
-#define ERR_IF_CLEANUP_FREE1 	ERR_NZERO_CLEANUP_FREE1
-
 #define ERR(errCode, fmt, ...) { ERR_MSG(fmt, ##__VA_ARGS__); return errCode; }
+
+#define ERR_IF(errIfNZero, errCode, fmt, ...) \
+	ERR_NZERO(errIfNZero, errCode, fmt, ##__VA_ARGS__)
+#define ERR_IF_FREE1(errIfNZero, errCode, toFree1, fmt, ...) \
+	ERR_NZERO_FREE1(errIfNZero, errCode, toFree1, fmt, ##__VA_ARGS__)
+#define ERR_IF_FREE2(errIfNZero, errCode, toFree1, toFree2, fmt, ...) \
+	ERR_NZERO_FREE2(errIfNZero, errCode, toFree1, toFree2, fmt, ##__VA_ARGS__)
+#define ERR_IF_FREE3(errIfNZero, errCode, toFree1, toFree2, toFree3, fmt, ...) \
+	ERR_NZERO_FREE3(errIfNZero, errCode, toFree1, toFree2, toFree3, fmt, ##__VA_ARGS__)
+#define ERR_IF_CLEANUP(errIfNZero, errCode, cleanup, fmt, ...) \
+	ERR_NZERO_CLEANUP(errIfNZero, errCode, cleanup, fmt, ##__VA_ARGS__)
+#define ERR_IF_CLEANUP_FREE1(errIfNZero, errCode, cleanup, toFree1, fmt, ...) \
+	ERR_NZERO_CLEANUP_FREE1(errIfNZero, errCode, cleanup, toFree1, fmt, ##__VA_ARGS__)
 
 #define ERR_NULL(errIfNull, errCode, fmt, ...) {\
 	if (!errIfNull) { ERR_MSG(fmt, ##__VA_ARGS__); return errCode; } }

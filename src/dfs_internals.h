@@ -57,13 +57,14 @@ dfs_err determine_file_size(dfs_partition *pt, const entry_pointer entry, size_t
 #pragma endregion
 
 #pragma region File handles
-dfs_err handle_can_open(dfs_partition *pt, const char *path, const dfs_filem_flags flags);
-dfs_err handle_open(dfs_partition *pt, const char *path, const dfs_filem_flags flags, int *handle);
-dfs_err handle_close(dfs_partition *pt, const int handle);
-dfs_err handle_get(dfs_partition *pt, const int handle, dfs_file *fh);
+dfs_err handle_can_open(dfs_partition *pt, const char *path, const dfs_filem_flags flags, bool *can_open);
+dfs_err handle_close(dfs_partition *pt, const int descriptor);
+dfs_err handle_get(dfs_partition *pt, const int descriptor, dfs_file *fh);
+
+dfs_err handle_open_flags_compatible(const dfs_filem_flags new, const dfs_filem_flags open);
 
 int file_descriptor_hasher(void *descriptor);
-void dfilestream_deallocator(void *stream);
+void dfs_file_deallocator(void *file);
 #pragma endregion
 
 #endif

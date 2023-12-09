@@ -169,7 +169,7 @@ bool hashmap_remove(Hashmap *map, void *key)
 	return true;
 }
 
-bool hashmap_haskey(Hashmap *map, void *key)
+bool hashmap_has_key(Hashmap *map, void *key)
 {
 	if (!map)
 		return false; //TODO: Better error
@@ -186,4 +186,34 @@ bool hashmap_haskey(Hashmap *map, void *key)
 			return false;
 
 	return true;
+}
+
+
+
+size_t hashmap_get_count(Hashmap *map)
+{
+	return map->count;
+}
+
+size_t hashmap_get_values(Hashmap *map, void **values, size_t capacity)
+{
+	size_t head = 0;
+	HashEntry *next;
+
+	for (size_t i = 0; i < map->capacity && head < capacity; i++)
+	{
+		if (!map->entries[i].used)
+			continue;
+
+		values[head++] = map->entries[i].value;
+		next = map->entries[i].next;
+
+		while (next && head < capacity)
+		{
+			values[head++] = next->value;
+			next = next->next;
+		}
+	}
+
+	return head;
 }

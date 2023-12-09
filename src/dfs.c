@@ -70,7 +70,8 @@ dfs_err dfs_popen(const char *device, dfs_partition **pt_handle)
 
 	ERR_NZERO_CLEANUP_FREE1((err = load_blk_map(pt)), err, close(pt->device), pt, "Failed to load block map.\n");
 
-	pt->open_handles = hashmap_create(file_descriptor_hasher, dfilestream_deallocator, BASE_FILEHANDLE_CAPACITY);
+	pt->lowest_used_descriptor = 0;
+	pt->open_handles = hashmap_create(file_descriptor_hasher, dfs_file_deallocator, BASE_FILEHANDLE_CAPACITY);
 	ERR_NULL_CLEANUP_FREE1(pt->open_handles, DFS_FAILED_ALLOC, close(pt->device); destroy_blk_map(pt), pt, ERR_MSG_ALLOC_FAIL);
 
 	*pt_handle = pt;
@@ -101,34 +102,42 @@ dfs_err dfs_fcreate(dfs_partition *pt, const char *path)
 	return create_object(pt, path, ENTRY_FLAG_FILE | ENTRY_FLAG_READWRITE);
 }
 
-dfs_err dfs_fopen(dfs_partition *pt, const char *path, DFileStream **fsHandle)
-{
+dfs_err dfs_fopen(dfs_partition *pt, const char *path, const dfs_filem_flags flags, int *descriptor)
+{//TODO: Test
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
-	ERR_NULL(fsHandle, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fsHandle));
+	ERR_NULL(path, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(path));
+	ERR_NULL(descriptor, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(descriptor));
 
-	*fsHandle = NULL;
-	int err;
+	dfs_err err;
+	bool can_open = false;
+	ERR_IF((err = handle_can_open(pt, path, flags, &can_open)), err, "Failed to test if file '%s' can be opened.\n", path);
+	ERR_IF(!can_open, DFS_UNAUTHORIZED_ACCESS, "Could not open file '%s' due to access restrictions.\n", path);
+
+	dfs_file *handle = malloc(sizeof(dfs_file));
+	ERR_NULL(handle, DFS_FAILED_ALLOC, ERR_MSG_ALLOC_FAIL);
+
 	entry_pointer entry;
 	entry_ptr_loc entry_loc;
+	size_t file_size;
+	ERR_NZERO_FREE1((err = find_entry_ptr(pt, path, &entry, &entry_loc)), err, handle, "Could not find entry for file '%s'.\n", path);
+	ERR_NZERO_FREE1((err = determine_file_size(pt, entry, &file_size)), err, handle, "Failed to determine file size.\n");
 
-	DFileStream* fs = malloc(sizeof(DFileStream));
-	ERR_NULL(fs, DFS_FAILED_ALLOC, ERR_MSG_ALLOC_FAIL);
+	strcpy(handle->path, path);
+	handle->flags = flags;
+	handle->head = 0;
+	handle->file_size = file_size;
+	handle->cur_blk_idx = handle->first_blk_idx = entry.first_blk;
+	handle->last_blk_idx = entry.last_blk;
+	handle->entry_loc = entry_loc;
 
-	ERR_NZERO_FREE1((err = find_entry_ptr(pt, path, &entry, &entry_loc)), err, fs, "Could not find entry for the requested file.\n");
-	
-	ERR_NZERO_FREE1((err = determine_file_size(pt, entry, &fs->file_size)), err, fs, "Failed to determine file size.\n");
-	fs->file_pos = 0;
-	fs->cur_blkIdx = entry.first_blk;
-	fs->first_blkIdx = entry.first_blk;
-	fs->last_blkIdx = entry.last_blk;
-	fs->entry_loc = entry_loc;
-	fs->pt = pt;
+	int new_descriptor = pt->lowest_used_descriptor++;
+	ERR_IF(!hashmap_add(pt->open_handles, &new_descriptor, handle), DFS_FAILED_ALLOC, ERR_MSG_ALLOC_FAIL);
 
-	*fsHandle = fs;
+	*descriptor = new_descriptor;
 	return DFS_SUCCESS;
 }
 
-dfs_err dfs_fclose(DFileStream *fs)
+dfs_err dfs_fclose(dfs_partition *pt, int descriptor)
 {
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
 
@@ -140,7 +149,7 @@ dfs_err dfs_fclose(DFileStream *fs)
 	return DFS_SUCCESS;
 }
 
-dfs_err dfs_fwrite(void *buffer, size_t len, DFileStream *fs, size_t *written)
+dfs_err dfs_fwrite(dfs_partition *pt, int descriptor, void *buffer, size_t len, size_t *written)
 {
 	ERR_NULL(buffer, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(buffer));
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
@@ -209,7 +218,7 @@ dfs_err dfs_fwrite(void *buffer, size_t len, DFileStream *fs, size_t *written)
 	return DFS_SUCCESS;
 }
 
-dfs_err dfs_fread(void *buffer, size_t len, DFileStream *fs, size_t *readc)
+dfs_err dfs_fread(dfs_partition *pt, int descriptor, void *buffer, size_t len, size_t *read)
 {
 	ERR_NULL(buffer, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(buffer));
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
@@ -254,13 +263,13 @@ dfs_err dfs_fread(void *buffer, size_t len, DFileStream *fs, size_t *readc)
 		}
 	}
 
-	if (readc)
-		*readc = buffer_head;
+	if (read)
+		*read = buffer_head;
 
 	return DFS_SUCCESS;
 }
 
-dfs_err dfs_fseek(size_t pos, DFileStream *fs)
+dfs_err dfs_fseek(dfs_partition *pt, int descriptor, size_t pos /*TODO: WHENCE and return position*/)
 {
 	ERR_NULL(fs, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(fs));
 
@@ -281,7 +290,6 @@ dfs_err load_blk_map(dfs_partition* host)
 
 	ERR_NULL(map, DFS_FAILED_ALLOC, ERR_MSG_ALLOC_FAIL);
 
-	//map->host = host;
 	map->length = host->blk_count >> 3;
 	map->map = malloc(map->length);
 
@@ -296,27 +304,27 @@ dfs_err load_blk_map(dfs_partition* host)
 	return DFS_SUCCESS;
 }
 
-dfs_err get_blk_used(const dfs_partition *pt, uint32_t blk_idx, bool *used)
+dfs_err get_blk_used(const dfs_partition *pt, blk_idx_t blk_idx, bool *used)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(used, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(used));
 	ERR_IF(blk_idx >= pt->blk_count, DFS_NVAL_ARGS, "Argument 'blk_idx' must be smaller than total block count.\n");
 
-	uint32_t offset = blk_idx & 0x7; 
-	uint32_t index = blk_idx & ~0x7;
+	blk_idx_t offset = blk_idx & 0x7; 
+	blk_idx_t index = blk_idx & ~0x7;
 
 	*used = pt->usage_map->map[index] & (1 << offset);
 
 	return DFS_SUCCESS;
 }
 
-dfs_err set_blk_used(const dfs_partition *pt, uint32_t blk_idx, bool used)
+dfs_err set_blk_used(const dfs_partition *pt, blk_idx_t blk_idx, bool used)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_IF(blk_idx >= pt->blk_count, DFS_NVAL_ARGS, "Argument 'blk_idx' must be smaller than total block count.\n");
 
-	uint32_t offset = blk_idx & 0x7; 
-	uint32_t index = blk_idx & ~0x7;
+	blk_idx_t offset = blk_idx & 0x7; 
+	blk_idx_t index = blk_idx & ~0x7;
 
 	if (used)
 		pt->usage_map->map[index] |= (1 << offset);
@@ -353,9 +361,9 @@ int file_descriptor_hasher(void *descriptor)
 	return *((int*)descriptor);
 }
 
-void dfilestream_deallocator(void *stream)
+void dfs_file_deallocator(void *file)
 {
-	DFileStream *fs = (DFileStream*)stream;
+	dfs_file *fs = (dfs_file*)file;
 
 	free(fs);
 }
@@ -740,12 +748,12 @@ dfs_err find_free_blk(const dfs_partition *pt, blk_idx_t *index)
 }
 #pragma endregion
 #pragma region Block manipulation
-dfs_err append_blk_to_file(const dfs_partition *pt, const entry_ptr_loc entry_loc, blk_idx_t *new_blk_idx)
+dfs_err append_blk_to_file(const dfs_partition *pt, const entry_ptr_loc entry_loc, blk_idx_t *new_idx)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
 	int err; ssize_t readc;
-	uint32_t new_blk_idx, old_block_index;
+	uint32_t new_blk_idx, old_block_idx;
 	entry_pointer entry;
 	block_header new_blk, old_block;
 
@@ -759,7 +767,7 @@ dfs_err append_blk_to_file(const dfs_partition *pt, const entry_ptr_loc entry_lo
 	ERR_IF(readc != sizeof(entry_pointer), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL); //TODO: Revert block set to used
 
 	//Update last block index in entry
-	old_block_index = entry.last_blk;
+	old_block_idx = entry.last_blk;
 	entry.last_blk = new_blk_idx;
 
 	//Flush changes
@@ -768,7 +776,7 @@ dfs_err append_blk_to_file(const dfs_partition *pt, const entry_ptr_loc entry_lo
 
 	//Create new block header
 	new_blk.next_blk = 0;
-	new_blk.prev_blk = old_block_index;
+	new_blk.prev_blk = old_block_idx;
 	new_blk.used_space = 0;
 	new_blk.resvd = 0;
 
@@ -777,18 +785,18 @@ dfs_err append_blk_to_file(const dfs_partition *pt, const entry_ptr_loc entry_lo
 	ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
 
 	//Read old block
-	readc = device_read_at_blk(old_block_index, &old_block, sizeof(block_header), pt);
+	readc = device_read_at_blk(old_block_idx, &old_block, sizeof(block_header), pt);
 	ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
 	//Update index
 	old_block.next_blk = new_blk_idx;
 
 	//Flush changes
-	readc = device_write_at_blk(old_block_index, &old_block, sizeof(block_header), pt);
+	readc = device_write_at_blk(old_block_idx, &old_block, sizeof(block_header), pt);
 	ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
 
-	if (new_blk_idx)
-		*new_blk_idx = new_blk_idx;
+	if (new_idx)
+		*new_idx = new_blk_idx;
 
 	return DFS_SUCCESS;
 }
@@ -839,6 +847,9 @@ dfs_err append_entry_to_dir(const dfs_partition *pt, const entry_ptr_loc dir_ent
 #pragma region File manipulation
 dfs_err create_object(dfs_partition *pt, const char *path, const uint16_t flags)
 {
+	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
+	ERR_NULL(path, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(path));
+	
 	char parent_dir[MAX_PATH + 1];
 	char name[MAX_PATH_NAME + 1];
 
@@ -909,8 +920,35 @@ dfs_err determine_file_size(dfs_partition *pt, const entry_pointer entry, size_t
 }
 #pragma endregion
 #pragma region File handles
-dfs_err handle_can_open(dfs_partition *pt, const char *path, const dfs_filem_flags flags)
-{	return DFS_NOT_IMPLEMENTED;
+dfs_err handle_can_open(dfs_partition *pt, const char *path, const dfs_filem_flags flags, bool *can_open)
+{//TODO: Test
+	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
+	ERR_NULL(path, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(path));
+	ERR_NULL(can_open, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(can_open));
 
+	//Get all open handles
+	size_t handle_count = hashmap_get_count(pt->open_handles);
+	dfs_file **open_handles = malloc(handle_count * sizeof(dfs_file*));
+	ERR_NULL(open_handles, DFS_FAILED_ALLOC, ERR_MSG_ALLOC_FAIL);
+	hashmap_get_values(pt->open_handles, (void**)open_handles, handle_count);
+
+	bool compatible = true;
+	for (size_t i = 0; i < handle_count; i++)
+	{
+		dfs_file *cur = open_handles[i];
+
+		if (strcmp(cur->path, path))
+			continue;
+
+		if (!handle_open_flags_compatible(flags, cur->flags))
+		{
+			compatible = false;
+			break;
+		}
+	}
+
+	free(open_handles);
+	*can_open = compatible;
+	return DFS_SUCCESS;
 }
 #pragma endregion
