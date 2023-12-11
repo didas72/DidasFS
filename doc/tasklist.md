@@ -10,7 +10,9 @@ ADD FEATURE: Implement target interfaces:
 * IO interface: fopen, fread, fwrite, fclose, ftruncate, fsync (flush)
 * Management interface: mkdir, rmdir, create (touch), rmfile (rm)
 
-DOCS: Finish doxygen for dPaths.h
+REMINDER: Files/dirs with open handles cannot be modified
+
+DOCS: Finish doxygen for paths.h
 
 TEST: Fail conditions
 TEST: Partition sizing
