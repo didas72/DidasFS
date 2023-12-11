@@ -7,8 +7,10 @@
 #include "../src/dfs.h"
 #include "../src/paths.h"
 
-//===Test framework stuff===
+//For more thourough tests and for constants access
+#include "../src/dfs_structures.h"
 
+//===Path functions===
 MU_TEST(combine)
 {
 	char buff[32]; buff[31] = '\0';
@@ -39,7 +41,7 @@ MU_TEST(get_name)
 	mu_assert_string_eq("Joel", dfs_path_get_name(buff, "Joel"));
 }
 
-MU_TEST_SUITE(dfs_dfs_path_all)
+MU_TEST_SUITE(dfs_path_all)
 {
 	MU_RUN_TEST(combine);
 	MU_RUN_TEST(get_parent);
@@ -47,8 +49,103 @@ MU_TEST_SUITE(dfs_dfs_path_all)
 }
 
 
+//===Partition functions===
+MU_TEST(create_partition)
+{
+	dfs_err err;
+	size_t avail_size = 1 << 20; //1M
+	char *device = "./test_create_partition.hex";
 
-//===Hand testing stuff===
+	err = dfs_pcreate(device, avail_size);
+	mu_assert_int_eq(err, 0);
+}
+
+MU_TEST(open_close_partition)
+{
+	dfs_err err;
+	dfs_partition *pt;
+	size_t avail_size = 1 << 20; //1M
+	char *device = "./test_open_close_partition.hex";
+
+	err = dfs_pcreate(device, avail_size);
+	mu_assert(err == 0, "Partition creation failed.");
+
+	err = dfs_popen(device, &pt);
+	mu_assert_int_eq(err, 0);
+
+	err = dfs_pclose(pt);
+	mu_assert_int_eq(err, 0);
+}
+
+MU_TEST_SUITE(dfs_partition_good)
+{
+	MU_RUN_TEST(create_partition);
+	MU_RUN_TEST(open_close_partition);
+}
+
+
+//===Partition function errors===
+MU_TEST(create_partition_errors)
+{
+	dfs_err err;
+	size_t avail_size = 1 << 20; //1M
+	char *device = "./test_create_partition_erros.hex";
+
+	//Spotted and fixed
+	err = dfs_pcreate(NULL, avail_size);
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_pcreate accepted a NULL device.");
+
+	err = dfs_pcreate(device, 0);
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_pcreate accepted 0 as available size.");
+
+	err = dfs_pcreate(device, BLOCK_SIZE + SECTOR_SIZE - 1);
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_pcreate accepted a value too small for available size.");
+
+	err = dfs_pcreate(device, BLOCK_SIZE + SECTOR_SIZE);
+	mu_assert(err == DFS_SUCCESS, "dfs_pcreate rejected the minimum value for available size.");
+}
+
+MU_TEST(open_close_partition_errors)
+{
+	dfs_err err;
+	dfs_partition *pt;
+	char *device = "./test_open_close_partition_erros.hex";
+	char *nval_device = "./invalid_device.hex";
+
+	//Spotted and fixed
+	err = dfs_popen(NULL, &pt);
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_popen accepted a NULL device.");
+
+	err = dfs_popen(device, NULL);
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_popen accepted a NULL partition pointer pointer.");
+
+	err = dfs_popen(nval_device, &pt);
+	mu_assert(err == DFS_FAILED_DEVICE_OPEN, "dfs_popen accepted an invalid device.");
+
+	err = dfs_pclose(NULL);
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_pclose accepted a NULL partition pointer.");
+}
+
+MU_TEST_SUITE(dfs_partition_errors)
+{
+	MU_RUN_TEST(create_partition_errors);
+	MU_RUN_TEST(open_close_partition_errors);
+}
+
+
+int main()
+{
+	MU_RUN_SUITE(dfs_path_all);
+	MU_RUN_SUITE(dfs_partition_good);
+	MU_RUN_SUITE(dfs_partition_errors);
+	MU_REPORT();
+	
+	return MU_EXIT_CODE;
+}
+
+
+/*
+//===Old tests===
 void HandTest()
 {
 	dfs_partition *pt;
@@ -118,17 +215,4 @@ void HandTest()
 
 	free(data);
 }
-
-
-
-int main()
-{
-	//Test framework
-	MU_RUN_SUITE(dfs_dfs_path_all);
-	MU_REPORT();
-
-	printf("Hand tests:\n");
-	HandTest();
-	
-	return MU_EXIT_CODE;
-}
+*/

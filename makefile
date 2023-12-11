@@ -2,7 +2,7 @@ AR=ar
 AR_FLAGS=rcs
 CC=gcc
 C_FLAGS=-Wall -Wextra -ggdb -Wno-unknown-pragmas
-VAL_FLAGS=--leak-check=full
+VAL_FLAGS=--leak-check=full -s
 
 SRC=src
 TEST=tests
@@ -20,7 +20,7 @@ TSRCS=$(wildcard $(TEST)/*.c)
 TOBJS=$(patsubst $(TEST)/%.c, $(OBJ)/tests/%.o, $(TSRCS))
 
 
-.PHONY: all build build-tests test debug memleak release clean loc doc doc-clean
+.PHONY: all build build-tests test debug memleak release loc doc clean-all clean clean-tests clean-doc
 
 
 all: $(OUTBIN)
@@ -44,6 +44,7 @@ $(OBJ)/%.o: $(SRC)/%.c
 
 
 test: $(TESTBIN)
+	@$(RM) *.hex
 	./$(TESTBIN)
 
 $(TESTBIN): $(OBJS) $(TOBJS)
@@ -62,15 +63,20 @@ debug: $(TESTBIN)
 memleak: $(TESTBIN)
 	valgrind $(VAL_FLAGS) $(TESTBIN)
 
-
-clean:
-	$(RM) -r $(OBJ) $(BIN)
-
 loc:
 	scc -s lines --no-cocomo --no-gitignore -w --size-unit binary --exclude-dir tests/framework src
 
 doc:
 	doxygen Doxyfile
 
+
+clean-all: clean clean-tests clean-doc
+
+clean:
+	@$(RM) -r $(OBJ) $(BIN)
+
+clean-tests:
+	@$(RM) *.hex
+
 clean-doc:
-	$(RM) -r $(DOC)/doxygen
+	@$(RM) -r $(DOC)/doxygen

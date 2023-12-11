@@ -83,7 +83,7 @@ dfs_err dfs_pcreate(const char *device, size_t total_size);
  * @param pt_handle Pointer to a partition handle pointer
  * @return int containing the error code for the operation
  */
-dfs_err dfs_popen(const char *device, dfs_partition **pt_handle);
+dfs_err dfs_popen(const char *device, dfs_partition **pt);
 /**
  * @brief Closes an open partition, releasing all associated resources
  * 
@@ -99,7 +99,7 @@ dfs_err dfs_pclose(dfs_partition *pt_handle);
  * @param path Path of the directory to be created
  * @return int containing the error code for the operation
  */
-dfs_err ddcreate(dfs_partition *pt, const char *path);
+dfs_err dfs_dcreate(dfs_partition *pt, const char *path);
 /**
  * @brief Create an empty file at the specified path
  * 

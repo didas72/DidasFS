@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "dfs.h"
 #include "dfs_structures.h"
