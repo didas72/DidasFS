@@ -10,12 +10,10 @@ ADD FEATURE: Implement target interfaces:
 * IO interface: fopen, fread, fwrite, fclose, ftruncate, fsync (flush)
 * Management interface: mkdir, rmdir, create (touch), rmfile (rm)
 
-REMINDER: Files/dirs with open handles cannot be modified
-
 DOCS: Finish doxygen for paths.h
 
-TEST: Fail conditions
-TEST: Partition sizing
+TEST: File functions
+TEST: Directory functions
 
 ADD FEATURE: Implement higher level:
 
@@ -25,12 +23,11 @@ ADD FEATURE: Implement higher level:
 * Move dile/dir
 * Check total free space
 * Verify and cleanup FS
+* Recover FS
 
 PERFORMANCE: Make blk_map changes buffered
 PERFORMANCE: Make reads/writes buffered
 PERFORMANCE: Remove system buffering
 REMINDER: Ensure flushes when closing streams (both in FS and in system)
-
-ADD FEATURE: FS recovery
 
 FIX: ?Needed? Replace all fread to work with 512 multiples for hardware devices

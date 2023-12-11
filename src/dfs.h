@@ -42,7 +42,7 @@ typedef struct dfs_file dfs_file;
 ///@brief Function failed to allocate the required memory
 #define DFS_FAILED_ALLOC (dfs_err)7
 ///@brief Function determined that the used partition is corrupted
-#define DFS_CORRUPTED_FS (dfs_err)8
+#define DFS_CORRUPTED_PARTITION (dfs_err)8
 ///@brief Function encountered invalid flags
 #define DFS_NVAL_FLAGS (dfs_err)9
 ///@brief Function failed to find part of the requested path

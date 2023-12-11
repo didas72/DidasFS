@@ -126,11 +126,36 @@ MU_TEST(open_close_partition_errors)
 	mu_assert(err == DFS_NVAL_ARGS, "dfs_pclose accepted a NULL partition pointer.");
 }
 
+MU_TEST(open_corrupt_partition_errors)
+{
+	dfs_err err;
+	dfs_partition *pt;
+	char *device = "./test_open_corrupt_partition_errors.hex";
+	char zero = 0;
+
+	//Generate corrupt partition
+	FILE *file = fopen(device, "wb");
+	fseek(file, 0x100000 - 1, SEEK_SET);
+	fwrite(&zero, 1, 1, file);
+	fclose(file);
+
+	err = dfs_popen(device, &pt);
+	mu_assert(err == DFS_CORRUPTED_PARTITION, "dfs_popen accepted a corrupted partition.");
+}
+
 MU_TEST_SUITE(dfs_partition_errors)
 {
 	MU_RUN_TEST(create_partition_errors);
 	MU_RUN_TEST(open_close_partition_errors);
+	MU_RUN_TEST(open_corrupt_partition_errors);
 }
+
+
+//TODO: //===Directory functions===
+//TODO: //===Directory function errors===
+
+//TODO: //===File functions===
+//TODO: //===File function errors===
 
 
 int main()

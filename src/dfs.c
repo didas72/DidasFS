@@ -581,13 +581,13 @@ dfs_err validate_partition_header(const dfs_partition* pt)
 	ERR_IF(readc != sizeof(partition_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
 	//Check magic number
-	ERR_IF(buff.magic_number != MAGIC_NUMBER, DFS_CORRUPTED_FS, "Partition has incorrect magic number.\n");
+	ERR_IF(buff.magic_number != MAGIC_NUMBER, DFS_CORRUPTED_PARTITION, "Partition has incorrect magic number.\n");
 
 	//Check reserved
-	ERR_IF(buff.resvd != 0, DFS_CORRUPTED_FS, "Partition has reserved flags set.\n");
+	ERR_IF(buff.resvd != 0, DFS_CORRUPTED_PARTITION, "Partition has reserved flags set.\n");
 
 	//Check blk_count will not overflow
-	ERR_IF(buff.usage_map_size> (~0u >> 3), DFS_CORRUPTED_FS, "Partition usage_map_size is too big.\n");
+	ERR_IF(buff.usage_map_size> (~0u >> 3), DFS_CORRUPTED_PARTITION, "Partition usage_map_size is too big.\n");
 
 	return DFS_SUCCESS;
 }
