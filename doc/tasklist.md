@@ -10,8 +10,6 @@ ADD FEATURE: Implement target interfaces:
 * IO interface: fopen, fread, fwrite, fclose, ftruncate, fsync (flush)
 * Management interface: mkdir, rmdir, create (touch), rmfile (rm)
 
-DOCS: Finish doxygen for paths.h
-
 TEST: File functions
 TEST: Directory functions
 

@@ -41,9 +41,28 @@ char *dfs_path_get_parent(char *destination, const char *path);
  * @return Destination is returned
  */
 char *dfs_path_get_name(char *destination, const char *path);
-
+/**
+ * @brief Gets the first name of the path, or empty if there is only one name
+ * 
+ * @param destination Pointer to the destinaton array where the content is to be copied
+ * @param path The path to examine
+ * @return Destination is returned
+ */
 char *dfs_path_get_root(char *destination, const char *path);
+/**
+ * @brief Gets the last name of the path.
+ * 
+ * @param destination Pointer to the destinaton array where the content is to be copied
+ * @param path The path to examine
+ * @return Destination is returned
+ */
 char *dfs_path_get_tail(char *destination, const char *path);
+/**
+ * @brief Determines wether or not the given path is empty
+ * 
+ * @param path The path to be checked
+ * @return true if the path is empty, false otherwise
+ */
 bool dfs_path_is_empty(const char *path);
 
 #endif
