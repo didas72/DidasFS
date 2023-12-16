@@ -64,9 +64,6 @@ dfs_err handle_get(dfs_partition *pt, const int descriptor, dfs_file **file);
 
 bool handle_open_flags_compatible(const dfs_filem_flags new, const dfs_filem_flags open);
 bool object_is_writable(entry_pointer entry);
-
-int file_descriptor_hasher(const void *descriptor);
-void dfs_file_deallocator(void *file);
 #pragma endregion
 
 #endif

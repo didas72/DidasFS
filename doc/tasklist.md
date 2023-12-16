@@ -3,7 +3,6 @@
 REMINDER: Cleanup TODO in code
 
 FIX: File creation not accepting flags
-FIX: Writing to a file must update all related handles
 
 ADD FEATURE: Implement target interfaces:
 

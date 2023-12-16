@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <stddef.h>
 
@@ -112,20 +113,15 @@ dfs_err dfs_fopen(dfs_partition *pt, const char *path, const dfs_filem_flags fla
 
 	entry_pointer entry;
 	entry_ptr_loc entry_loc;
-	size_t file_size;
 	ERR_NZERO((err = find_entry_ptr(pt, path, &entry, &entry_loc)), err, "Could not find entry for file '%s'.\n", path);
-	ERR_NZERO((err = determine_file_size(pt, entry, &file_size)), err, "Failed to determine file size.\n");
-
 	ERR_IF(!object_is_file(entry) || !object_is_writable(entry), DFS_UNAUTHORIZED_ACCESS, ERR_MSG_UNAUTHORIZED_ACCESS("open", path));
 
 	dfs_file handle = {
 		.present = true,
 		.flags = flags,
 		.head = 0,
-		.file_size = file_size,
 		.cur_blk_idx = entry.first_blk,
 		.first_blk_idx = entry.first_blk,
-		.last_blk_idx = entry.last_blk,
 		.entry_loc = entry_loc
 	};
 
@@ -182,8 +178,6 @@ dfs_err dfs_fwrite(dfs_partition *pt, const int descriptor, const void *buffer, 
 
 		if (final_new_data_in_blk > cur_blk.used_space) //If grown
 		{
-			file->file_size += final_new_data_in_blk - cur_blk.used_space;
-
 			//Update cur block
 			cur_blk.used_space = final_data_in_blk;
 
@@ -211,7 +205,7 @@ dfs_err dfs_fwrite(dfs_partition *pt, const int descriptor, const void *buffer, 
 				uint32_t new_index;
 				err = append_blk_to_file(pt, file->entry_loc, &new_index);
 				ERR_NZERO(err, err, "Failed to grow file.\n");
-				file->cur_blk_idx = file->last_blk_idx = new_index;
+				file->cur_blk_idx = new_index;
 			}
 		}
 	}
@@ -596,12 +590,12 @@ dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(file, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(file));
-	ERR_IF(position > file->file_size, DFS_NVAL_SEEK, "Attempted to seek beyond file boundaries.\n");
 
 	size_t cur_pos = 0, left;
 	uint32_t cur_blk = file->first_blk_idx;
 	block_header cur_header;
 	ssize_t readc;
+	dfs_err err;
 
 	while (cur_pos != position)
 	{
@@ -611,13 +605,24 @@ dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file)
 
 		if (left >= BLOCK_DATA_SIZE) //Full block skip
 		{
-			//No need to check for next block, checked by first ERR_IF
+			if (cur_header.next_blk)
+			{
+				cur_blk = cur_header.next_blk;
+			}
+			else
+			{
+				uint32_t new_index;
+				err = append_blk_to_file(pt, file->entry_loc, &new_index);
+				ERR_NZERO(err, err, "Failed to grow file.\n");
+				cur_blk = new_index;
+			}
 			cur_pos += BLOCK_DATA_SIZE;
-			cur_blk = cur_header.next_blk;
 		}
 		else //Partial block advance
 		{
-			//No need to check within block usedSize, checked by first ERR_IF
+			cur_header.used_space += left;
+			readc = device_write_at_blk(cur_blk, &cur_header, sizeof(block_header), pt);
+			ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
 			cur_pos += left;
 		}
 	}

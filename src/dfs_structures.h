@@ -23,6 +23,7 @@
 #define ENTRY_FLAG_DIR (file_flags_t)0x0001
 #define ENTRY_FLAG_READWRITE (file_flags_t)0x0000
 #define ENTRY_FLAG_READONLY (file_flags_t)0x0002
+#define ENTRY_FLAG_SYSTEM (file_flags_t)0x0004
 #pragma endregion
 
 
@@ -56,8 +57,7 @@ typedef struct dfs_file
 
 	//Positioning
 	size_t head;
-	size_t file_size;
-	blk_idx_t cur_blk_idx, first_blk_idx, last_blk_idx;
+	blk_idx_t cur_blk_idx, first_blk_idx;
 	entry_ptr_loc entry_loc;
 } _dfs_file;
 
