@@ -605,6 +605,7 @@ dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file)
 
 		if (left >= BLOCK_DATA_SIZE) //Full block skip
 		{
+			//TODO: cur_header.used_space might break
 			if (cur_header.next_blk)
 			{
 				cur_blk = cur_header.next_blk;

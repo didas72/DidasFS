@@ -11,6 +11,7 @@ ADD FEATURE: Implement target interfaces:
 
 TEST: File functions
 TEST: Directory functions
+TEST: File seeking
 
 ADD FEATURE: Implement higher level:
 
