@@ -165,7 +165,7 @@ dfs_err dfs_fwrite(dfs_partition *pt, const int descriptor, const void *buffer, 
 	{
 		//Read cur block
 		readc = device_read_at_blk(file->cur_blk_idx, &cur_blk, sizeof(block_header), pt);
-		ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL); //TODO: Revert changes?
+		ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
 		//Calculate metrics
 		size_t block_offset = file->head % BLOCK_DATA_SIZE;
@@ -183,12 +183,12 @@ dfs_err dfs_fwrite(dfs_partition *pt, const int descriptor, const void *buffer, 
 
 			//Flush block changes
 			readc = device_write_at_blk(file->cur_blk_idx, &cur_blk, sizeof(block_header), pt);
-			ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL); //TODO: Revert changes?
+			ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
 		}
 
 		//Flush data
 		readc = device_write_at(data_addr, &((char*)buffer)[buffer_head], cur_blk_write, pt);
-		ERR_NZERO(readc != (ssize_t)cur_blk_write, DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL); //TODO: Revert changes?
+		ERR_NZERO(readc != (ssize_t)cur_blk_write, DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
 
 		//Update head
 		buffer_head += cur_blk_write;
@@ -232,7 +232,7 @@ dfs_err dfs_fread(dfs_partition *pt, const int descriptor, const void *buffer, c
 	{
 		//Read cur block
 		readB = device_read_at_blk(file->cur_blk_idx, &cur_blk, sizeof(block_header), pt);
-		ERR_IF(readB != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL); //TODO: Revert changes?
+		ERR_IF(readB != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
 		//Calculate metrics
 		size_t blockOffset = file->head % BLOCK_DATA_SIZE;
@@ -243,7 +243,7 @@ dfs_err dfs_fread(dfs_partition *pt, const int descriptor, const void *buffer, c
 		
 		//Read data
 		readB = device_read_at(dataAddr, &((char*)buffer)[buffer_head], cur_blkRead, pt);
-		ERR_NZERO(readB != cur_blkRead, DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL); //TODO: Revert changes?
+		ERR_NZERO(readB != cur_blkRead, DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 	
 		//Update head
 		buffer_head += cur_blkRead;
@@ -605,13 +605,22 @@ dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file)
 
 		if (left >= BLOCK_DATA_SIZE) //Full block skip
 		{
-			//TODO: cur_header.used_space might break
 			if (cur_header.next_blk)
 			{
+				//Update used space if neeed
+				if (cur_header.used_space < BLOCK_DATA_SIZE)
+				{
+					cur_header.used_space = BLOCK_DATA_SIZE;
+					readc = device_write_at_blk(cur_blk, &cur_header, sizeof(block_header), pt);
+					ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
+				}
+
+				//Advance block
 				cur_blk = cur_header.next_blk;
 			}
 			else
 			{
+				//Grow file
 				uint32_t new_index;
 				err = append_blk_to_file(pt, file->entry_loc, &new_index);
 				ERR_NZERO(err, err, "Failed to grow file.\n");
@@ -621,9 +630,12 @@ dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file)
 		}
 		else //Partial block advance
 		{
-			cur_header.used_space += left;
-			readc = device_write_at_blk(cur_blk, &cur_header, sizeof(block_header), pt);
-			ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
+			if (left > cur_header.used_space)
+			{
+				cur_header.used_space += left - cur_header.used_space;
+				readc = device_write_at_blk(cur_blk, &cur_header, sizeof(block_header), pt);
+				ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
+			}
 			cur_pos += left;
 		}
 	}
@@ -701,7 +713,7 @@ dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t cur_bl
 	entries = malloc(ENTRIES_PER_BLK * sizeof(entry_pointer));
 	ERR_NULL(entries, DFS_FAILED_ALLOC, ERR_MSG_ALLOC_FAIL);
 
-	readc = device_read(entries, ENTRIES_PER_BLK * sizeof(entry_pointer), pt); //TODO: Handle errors
+	readc = device_read(entries, ENTRIES_PER_BLK * sizeof(entry_pointer), pt);
 	ERR_IF(readc != ENTRIES_PER_BLK * sizeof(entry_pointer), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
 	//TODO: Possibly validate header used_space is multiple of sizeof(entry_pointer)
@@ -790,7 +802,7 @@ dfs_err append_blk_to_file(const dfs_partition *pt, const entry_ptr_loc entry_lo
 
 	//Read entry pointer
 	readc = device_read_at_entry_loc(entry_loc, &entry, pt);
-	ERR_IF(readc != sizeof(entry_pointer), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL); //TODO: Revert block set to used
+	ERR_IF(readc != sizeof(entry_pointer), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
 	//Update last block index in entry
 	old_block_idx = entry.last_blk;
@@ -798,7 +810,7 @@ dfs_err append_blk_to_file(const dfs_partition *pt, const entry_ptr_loc entry_lo
 
 	//Flush changes
 	readc = device_write_at_entry_loc(entry_loc, &entry, pt);
-	ERR_IF(readc != sizeof(entry_pointer), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL); //TODO: Revert block set to used
+	ERR_IF(readc != sizeof(entry_pointer), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
 
 	//Create new block header
 	new_blk.next_blk = 0;
@@ -853,20 +865,20 @@ dfs_err append_entry_to_dir(const dfs_partition *pt, const entry_ptr_loc dir_ent
 
 		//Load new block
 		readc = device_read_at_blk(blk_idx, &dir_blk, sizeof(block_header), pt);
-		ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL); //TODO: Revert changes
+		ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 	}
 
 	//Write new entry pointer
 	size_t addr = blk_off_to_addr(pt, blk_idx, dir_blk.used_space);
 	readc = device_write_at(addr, &new_entry, sizeof(entry_pointer), pt);
-	ERR_IF(readc != sizeof(entry_pointer), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL); //TODO: Revert changes
+	ERR_IF(readc != sizeof(entry_pointer), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
 
 	//Update block header
 	dir_blk.used_space += (uint32_t)sizeof(entry_pointer);
 
 	//Flush header changes
 	readc = device_write_at_blk(blk_idx, &dir_blk, sizeof(block_header), pt);
-	ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL); //TODO: Revert changes
+	ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
 
 	return DFS_SUCCESS;
 }

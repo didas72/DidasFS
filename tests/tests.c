@@ -133,7 +133,7 @@ MU_TEST(open_corrupt_partition_errors)
 	char *device = "./test_open_corrupt_partition_errors.hex";
 	char zero = 0;
 
-	//Generate corrupt partition
+	//Generate corrupted partition
 	FILE *file = fopen(device, "wb");
 	fseek(file, 0x100000 - 1, SEEK_SET);
 	fwrite(&zero, 1, 1, file);
