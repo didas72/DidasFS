@@ -43,9 +43,8 @@ $(OBJ)/%.o: $(SRC)/%.c
 
 
 
-test: $(TESTBIN)
-	@$(RM) *.hex
-	./$(TESTBIN)
+test: $(TESTBIN) clean-tests
+	./$(TESTBIN) 2> stderr_redirect.log
 
 $(TESTBIN): $(OBJS) $(TOBJS)
 	@mkdir -p $(@D)
@@ -76,7 +75,7 @@ clean:
 	@$(RM) -r $(OBJ) $(BIN)
 
 clean-tests:
-	@$(RM) *.hex
+	@$(RM) *.hex *.log
 
 clean-doc:
 	@$(RM) -r $(DOC)/doxygen

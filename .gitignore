@@ -1,4 +1,5 @@
 build
 **.hex
+**.log
 doc/doxygen
 .vscode

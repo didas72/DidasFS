@@ -649,9 +649,6 @@ dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file)
 #pragma region Block navigation
 dfs_err find_entry_ptr(const dfs_partition* pt, const char *path, entry_pointer *entry, entry_ptr_loc *entry_loc)
 {
-	//This is the 'intermediate' method
-	//Validates arguments and initiates recursion
-
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(path, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(path));
 
@@ -678,6 +675,7 @@ dfs_err find_entry_ptr(const dfs_partition* pt, const char *path, entry_pointer 
 
 dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t cur_blk, const char *path, entry_pointer *entry, entry_ptr_loc *entry_loc)
 {
+	//TODO: Break down into smaller functions
 	char root[MAX_PATH_NAME + 1];
 	char tail[MAX_PATH + 1];
 	char *search_name;
@@ -685,7 +683,7 @@ dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t cur_bl
 	entry_pointer *entries = NULL, found_entry = { 0 };
 	entry_ptr_loc location = { 0 };
 	block_header cur_header = { 0 };
-	uint32_t nextIdx = 0;
+	uint32_t next_idx = 0;
 	ssize_t readc;
 
 	memset(root, 0, MAX_PATH_NAME + 1);
@@ -730,7 +728,7 @@ dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t cur_bl
 		if (strncmp(search_name, entries[i].name, MAX_PATH_NAME))
 			continue;
 
-		nextIdx = entries[i].first_blk;
+		next_idx = entries[i].first_blk;
 		found_entry = entries[i];
 		location.blk_idx = cur_blk;
 		location.entry_idx = i;
@@ -739,7 +737,7 @@ dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t cur_bl
 
 	free(entries);
 
-	if (!nextIdx) //Couldn't find dir/file in current block
+	if (!next_idx) //Couldn't find dir/file in current block
 	{
 		ERR_IF(!cur_header.next_blk, DFS_PATH_NOT_FOUND, "Could not find '%s' in '%s'.\n", search_name, path);
 
@@ -747,8 +745,8 @@ dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t cur_bl
 	}
 	else //Found dir/file
 	{
-		if (nextIdx && strlen(root)) //It's not final, continue search on next block
-			return find_entry_ptr_recursion(pt, nextIdx, tail, entry, entry_loc);
+		if (next_idx && strlen(root)) //It's not final, continue search on next block
+			return find_entry_ptr_recursion(pt, next_idx, tail, entry, entry_loc);
 		else //It's the requested dir/file, return index
 		{
 			if (entry)
