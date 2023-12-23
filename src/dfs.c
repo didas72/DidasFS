@@ -679,7 +679,6 @@ dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t cur_bl
 	char root[MAX_PATH_NAME + 1];
 	char tail[MAX_PATH + 1];
 	char *search_name;
-	char search_for_dir;
 	entry_pointer *entries = NULL, found_entry = { 0 };
 	entry_ptr_loc location = { 0 };
 	block_header cur_header = { 0 };
@@ -692,16 +691,7 @@ dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t cur_bl
 	dfs_path_get_root(root, path);
 	dfs_path_get_tail(tail, path);
 
-	if (!dfs_path_is_empty(root)) //Looking for dir
-	{
-		search_for_dir = ENTRY_FLAG_DIR;
-		search_name = root;
-	}
-	else //Looking for file
-	{
-		search_for_dir = 0;
-		search_name = tail;
-	}
+	search_name = dfs_path_is_empty(root) ? tail : root;
 
 	//Read current block entries
 	device_seek(SEEK_SET, blk_idx_to_addr(pt, cur_blk), pt); //TODO: Handle errors
@@ -720,10 +710,6 @@ dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t cur_bl
 	//Search entries for dir/file
 	for (int i = 0; i < valid_entry_count; i++)
 	{
-		//Filter out dir/files as needed
-		if ((entries[i].flags & ENTRY_FLAG_DIR) != search_for_dir)
-			continue;
-
 		//Filter out not matching names (at most one should match)
 		if (strncmp(search_name, entries[i].name, MAX_PATH_NAME))
 			continue;
@@ -739,7 +725,7 @@ dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t cur_bl
 
 	if (!next_idx) //Couldn't find dir/file in current block
 	{
-		ERR_IF(!cur_header.next_blk, DFS_PATH_NOT_FOUND, "Could not find '%s' in '%s'.\n", search_name, path);
+		ERR_IF(!cur_header.next_blk, DFS_PATH_NOT_FOUND, "Could not find '%s', part of '%s'.\n", search_name, path);
 
 		return find_entry_ptr_recursion(pt, cur_header.next_blk, path, entry, entry_loc);
 	}

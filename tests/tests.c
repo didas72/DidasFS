@@ -224,7 +224,47 @@ MU_TEST_SUITE(dfs_directories_good)
 	MU_RUN_TEST(create_directory_nested);
 }
 
-//TODO: //===Directory function errors===
+//===Directory function errors===
+MU_TEST(duplicated_directories_errors)
+{
+	fprintf(stderr, "\nEntering %s\n\n", __func__);
+
+	dfs_err err;
+	dfs_partition *pt;
+	char *device = "./test_directories_errors.hex";
+
+	dfs_popen(device, &pt);
+
+	dfs_dcreate(pt, "dir1");
+
+	err = dfs_dcreate(pt, "dir1");
+	mu_assert(err == DFS_ALREADY_EXISTS, "dfs_dcreate created a duplicated directory.");
+}
+
+MU_TEST(empty_name_directories_errors)
+{
+	fprintf(stderr, "\nEntering %s\n\n", __func__);
+
+	dfs_err err;
+	dfs_partition *pt;
+	char *device = "./test_directories_errors.hex";
+
+	dfs_popen(device, &pt);
+
+	err = dfs_dcreate(pt, "");
+	mu_assert(err == DFS_NVAL_PATH, "dfs_dcreate accepted an empty directory name.");
+}
+
+MU_TEST_SUITE(dfs_directories_errors)
+{
+	size_t avail_size = 1 << 20; //1M
+	char *device = "./test_directories_errors.hex";
+
+	dfs_pcreate(device, avail_size);
+
+	MU_RUN_TEST(duplicated_directories_errors);
+	MU_RUN_TEST(empty_name_directories_errors);
+}
 
 //TODO: //===File functions===
 //TODO: //===File function errors===
@@ -236,6 +276,7 @@ int main()
 	MU_RUN_SUITE(dfs_partition_good);
 	MU_RUN_SUITE(dfs_partition_errors);
 	MU_RUN_SUITE(dfs_directories_good);
+	MU_RUN_SUITE(dfs_directories_errors);
 	MU_REPORT();
 	
 	return MU_EXIT_CODE;

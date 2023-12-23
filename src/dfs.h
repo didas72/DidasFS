@@ -25,23 +25,23 @@ typedef struct dfs_file dfs_file;
 //===Error codes===
 ///@brief Function has not been (fully) implemented
 #define DFS_NOT_IMPLEMENTED (dfs_err)-1
-///@brief Function has performed the operation successfully
+///@brief Operation performed successfully
 #define DFS_SUCCESS (dfs_err)0
 ///@brief Function failed for an unspecified reason
 #define DFS_FAIL (dfs_err)1
 ///@brief Function was given invalid arguments
 #define DFS_NVAL_ARGS (dfs_err)2
-///@brief Function was unable to open the requested file/device
+///@brief Function was unable to open the requested underlying file/device
 #define DFS_FAILED_DEVICE_OPEN (dfs_err)3
 ///@brief [UNUSED] Function failed to reserve the required file/device space
 #define DFS_FAILED_SPACE_RESERVE (dfs_err)4
-///@brief Function failed to write to the underlying file/device
+///@brief Failed to write to the underlying file/device
 #define DFS_FAILED_DEVICE_WRITE (dfs_err)5
-///@brief Function failed to read from the underlying file/device
+///@brief Failed to read from the underlying file/device
 #define DFS_FAILED_DEVICE_READ (dfs_err)6
-///@brief Function failed to allocate the required memory
+///@brief Failed to allocate the required memory
 #define DFS_FAILED_ALLOC (dfs_err)7
-///@brief Function determined that the used partition is corrupted
+///@brief Irrecoverable partition corruption was found
 #define DFS_CORRUPTED_PARTITION (dfs_err)8
 ///@brief Function encountered invalid flags
 #define DFS_NVAL_FLAGS (dfs_err)9
@@ -51,12 +51,16 @@ typedef struct dfs_file dfs_file;
 #define DFS_NO_SPACE (dfs_err)11
 ///@brief Function received an invalid seek position
 #define DFS_NVAL_SEEK (dfs_err)12
-///@brief Failed to open file because maximum number of open handles was reached.
+///@brief Failed to open file because maximum number of open handles was reached
 #define DFS_MAX_HANDLES_REACHED (dfs_err)13
-///@brief Operation on requested file failed due to access restrictions.
+///@brief Operation on requested file failed due to access restrictions
 #define DFS_UNAUTHORIZED_ACCESS (dfs_err)14
-///@brief Attempted to access an invalid descriptor.
+///@brief Attempted to access an invalid descriptor
 #define DFS_NVAL_DESCRIPTOR (dfs_err)15
+///@brief Attempted to create an object that already exists
+#define DFS_ALREADY_EXISTS (dfs_err)16
+///@brief Attempted to access an invalid path
+#define DFS_NVAL_PATH (dfs_err)17
 
 //===File mode flags===
 #define DFS_FILEM_READ (dfs_filem_flags)0x00000001

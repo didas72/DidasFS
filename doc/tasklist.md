@@ -2,16 +2,20 @@
 
 REMINDER: Cleanup TODO in code
 
-FIX: File creation not accepting flags
+TEST: File functions
+TEST: File seeking
+
+FIX: Error on too long file/dir names
+FIX: Error on empty names
+FIX: Object creation not accepting flags
 
 ADD FEATURE: Implement target interfaces:
 
 * IO interface: fopen, fread, fwrite, fclose, ftruncate, fsync (flush)
 * Management interface: mkdir, rmdir, create (touch), rmfile (rm)
 
-TEST: File functions
-TEST: Directory functions
-TEST: File seeking
+ADD FEATURE: Error checking partition header
+ADD FEATURE: Partition layout allow bootloader
 
 ADD FEATURE: Implement higher level:
 
