@@ -6,7 +6,6 @@ TEST: File functions
 TEST: File seeking
 
 FIX: Error on too long file/dir names
-FIX: Error on empty names
 FIX: Object creation not accepting flags
 
 ADD FEATURE: Implement target interfaces:

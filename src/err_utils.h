@@ -15,6 +15,7 @@
 #define ERR_MSG_UNAUTHORIZED_ACCESS(operation, path) "Could not " operation " file '%s' due to access restrictions.\n", path
 #define ERR_MSG_NVAL_DESCRIPTOR(operation, descriptor) "Cannot " operation " invalid descriptor '%d'.\n", descriptor
 #define ERR_MSG_HANDLE_FETCH_FAIL(descriptor) "Could not fetch handle for descriptor '%d'.\n", descriptor
+#define ERR_MSG_ALREADY_EXISTS(path) "Object of path '%s' already exists.\n", path
 
 #define ERR(errCode, fmt, ...) do { ERR_MSG(fmt, ##__VA_ARGS__); return errCode; } while(0)
 

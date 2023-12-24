@@ -234,10 +234,9 @@ MU_TEST(duplicated_directories_errors)
 	char *device = "./test_directories_errors.hex";
 
 	dfs_popen(device, &pt);
+	dfs_dcreate(pt, "dup");
 
-	dfs_dcreate(pt, "dir1");
-
-	err = dfs_dcreate(pt, "dir1");
+	err = dfs_dcreate(pt, "dup");
 	mu_assert(err == DFS_ALREADY_EXISTS, "dfs_dcreate created a duplicated directory.");
 }
 
@@ -252,7 +251,7 @@ MU_TEST(empty_name_directories_errors)
 	dfs_popen(device, &pt);
 
 	err = dfs_dcreate(pt, "");
-	mu_assert(err == DFS_NVAL_PATH, "dfs_dcreate accepted an empty directory name.");
+	mu_assert(err == DFS_NVAL_PATH, "dfs_dcreate accepted an empty root directory name.");
 }
 
 MU_TEST_SUITE(dfs_directories_errors)

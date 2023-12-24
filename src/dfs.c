@@ -147,7 +147,7 @@ dfs_err dfs_fclose(dfs_partition *pt, const int descriptor)
 }
 
 dfs_err dfs_fwrite(dfs_partition *pt, const int descriptor, const void *buffer, const size_t len, size_t *written)
-{
+{ //TODO: Maybe break down into smaller functions
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(buffer, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(buffer));
 	ERR_IF(len == 0, DFS_NVAL_ARGS, "Argument 'len' must not be 0.\n");
@@ -217,7 +217,7 @@ dfs_err dfs_fwrite(dfs_partition *pt, const int descriptor, const void *buffer, 
 }
 
 dfs_err dfs_fread(dfs_partition *pt, const int descriptor, const void *buffer, const size_t len, size_t *read)
-{
+{ //TODO: Maybe break down into smaller functions
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(buffer, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(buffer));
 	ERR_IF(len == 0, DFS_NVAL_ARGS, "Argument 'len' must not be 0.\n");
@@ -587,7 +587,8 @@ dfs_err validate_partition_header(const dfs_partition* pt)
 }
 
 dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file)
-{
+{ //TODO: Maybe break down into smaller functions
+	//TODO: Maybe inline with dfs_fseek
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(file, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(file));
 
@@ -674,8 +675,7 @@ dfs_err find_entry_ptr(const dfs_partition* pt, const char *path, entry_pointer 
 }
 
 dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t cur_blk, const char *path, entry_pointer *entry, entry_ptr_loc *entry_loc)
-{
-	//TODO: Break down into smaller functions
+{ //TODO: Maybe break down into smaller functions
 	char root[MAX_PATH_NAME + 1];
 	char tail[MAX_PATH + 1];
 	char *search_name;
@@ -770,7 +770,7 @@ dfs_err find_free_blk(const dfs_partition *pt, blk_idx_t *index)
 #pragma endregion
 #pragma region Block manipulation
 dfs_err append_blk_to_file(const dfs_partition *pt, const entry_ptr_loc entry_loc, blk_idx_t *new_idx)
-{
+{ //TODO: Maybe break down into smaller functions
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
 	dfs_err err;
@@ -869,7 +869,7 @@ dfs_err append_entry_to_dir(const dfs_partition *pt, const entry_ptr_loc dir_ent
 #pragma endregion
 #pragma region File manipulation
 dfs_err create_object(dfs_partition *pt, const char *path, const uint16_t flags)
-{
+{ //TODO: Maybe break down into smaller functions
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(path, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(path));
 	
@@ -882,6 +882,11 @@ dfs_err create_object(dfs_partition *pt, const char *path, const uint16_t flags)
 	block_header new_blk;
 	uint32_t new_blk_idx;
 	ssize_t readc;
+
+	ERR_IF(dfs_path_is_empty(path), DFS_NVAL_PATH, "Cannot create root object. (The provided path was empty)\n");
+
+	err = find_entry_ptr(pt, path, NULL, NULL);
+	ERR_IF(err == DFS_SUCCESS, DFS_ALREADY_EXISTS, ERR_MSG_ALREADY_EXISTS(path));
 
 	dfs_path_get_parent(parent_dir, path);
 	dfs_path_get_name(name, path);
