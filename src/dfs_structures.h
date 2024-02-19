@@ -106,6 +106,6 @@ dfs_err load_blk_map(dfs_partition *host);
 dfs_err get_blk_used(const dfs_partition *pt, blk_idx_t blk_idx, bool *used);
 dfs_err set_blk_used(const dfs_partition *pt, blk_idx_t blk_idx, bool used);
 dfs_err flush_full_blk_map(const dfs_partition *pt);
-//int Flushblk_mapChanges(dfs_partition *pt);
+//int flush_blk_map_changes(dfs_partition *pt);
 dfs_err destroy_blk_map(dfs_partition *pt);
 #endif

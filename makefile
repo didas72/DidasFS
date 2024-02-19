@@ -63,7 +63,7 @@ memleak: $(TESTBIN)
 	valgrind $(VAL_FLAGS) $(TESTBIN)
 
 loc:
-	scc -s lines --no-cocomo --no-gitignore -w --size-unit binary --exclude-dir tests/framework src
+	@scc -s lines --no-cocomo --no-gitignore -w --size-unit binary --exclude-dir tests/framework src
 
 doc:
 	doxygen Doxyfile
