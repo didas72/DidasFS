@@ -588,7 +588,6 @@ dfs_err validate_partition_header(const dfs_partition* pt)
 
 dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file)
 { //TODO: Maybe break down into smaller functions
-	//TODO: Maybe inline with dfs_fseek
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(file, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(file));
 
@@ -608,6 +607,8 @@ dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file)
 		{
 			if (cur_header.next_blk)
 			{
+				//FIXME: Might not be needed, if next_blk is set then all space should be in use
+
 				//Update used space if neeed
 				if (cur_header.used_space < BLOCK_DATA_SIZE)
 				{
@@ -621,6 +622,8 @@ dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file)
 			}
 			else
 			{
+				//FIXME: Might need to increase used space
+
 				//Grow file
 				uint32_t new_index;
 				err = append_blk_to_file(pt, file->entry_loc, &new_index);
@@ -631,9 +634,9 @@ dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file)
 		}
 		else //Partial block advance
 		{
-			if (left > cur_header.used_space)
+			if (left > cur_header.used_space) //Grow used space
 			{
-				cur_header.used_space += left - cur_header.used_space;
+				cur_header.used_space = left;
 				readc = device_write_at_blk(cur_blk, &cur_header, sizeof(block_header), pt);
 				ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
 			}

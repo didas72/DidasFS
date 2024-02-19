@@ -265,8 +265,104 @@ MU_TEST_SUITE(dfs_directories_errors)
 	MU_RUN_TEST(empty_name_directories_errors);
 }
 
-//TODO: //===File functions===
-//TODO: //===File function errors===
+//===File functions===
+MU_TEST(create_file)
+{
+	fprintf(stderr, "\nEntering %s\n\n", __func__);
+
+	dfs_err err;
+	dfs_partition *pt;
+	char *device = "./test_files_good.hex";
+
+	dfs_popen(device, &pt);
+
+	err = dfs_fcreate(pt, "create.file");
+	mu_assert_int_eq(0, err);
+
+	dfs_dcreate(pt, "dir1");
+
+	err = dfs_fcreate(pt, "dir1/create1.file");
+	mu_assert_int_eq(0, err);
+
+	dfs_pclose(pt);
+}
+
+MU_TEST(open_close_file)
+{
+	fprintf(stderr, "\nEntering %s\n\n", __func__);
+
+	dfs_err err;
+	dfs_partition *pt;
+	char *device = "./test_files_good.hex";
+
+	dfs_popen(device, &pt);
+	dfs_fcreate(pt, "open_close.file");
+	dfs_dcreate(pt, "dir2");
+	dfs_fcreate(pt, "dir2/open_close.file");
+
+	int fd;
+
+	err = dfs_fopen(pt, "open_close.file", DFS_FILEM_RDWR, &fd);
+	mu_assert_int_eq(0, err);
+
+	err = dfs_fclose(pt, fd);
+	mu_assert_int_eq(0, err);
+
+	err = dfs_fopen(pt, "dir2/open_close.file", DFS_FILEM_READ, &fd);
+	mu_assert_int_eq(0, err);
+
+	err = dfs_fclose(pt, fd);
+	mu_assert_int_eq(0, err);
+
+	dfs_pclose(pt);
+}
+
+MU_TEST(read_write_file)
+{
+	fprintf(stderr, "\nEntering %s\n\n", __func__);
+
+	dfs_err err;
+	dfs_partition *pt;
+	char *device = "./test_files_good.hex";
+	char *data = "I am a test string that will be written to file.\n";
+
+	int fd;
+	size_t io;
+	dfs_popen(device, &pt);
+	dfs_fcreate(pt, "read_write.file");
+	dfs_fopen(pt, "read_write.file", DFS_FILEM_WRITE, &fd);
+
+	err = dfs_fwrite(pt, fd, data, strlen(data), &io);
+	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(strlen(data), io);
+
+	char buff[64] = { 0 };
+
+	dfs_fclose(pt, fd);
+	dfs_fopen(pt, "read_write.file", DFS_FILEM_READ, &fd);
+	err = dfs_fread(pt, fd, buff, strlen(data), &io);
+
+	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(strlen(data), io);
+	mu_assert_string_eq(data, buff);
+
+	dfs_fclose(pt, fd);
+	dfs_pclose(pt);
+}
+
+MU_TEST_SUITE(dfs_files_good)
+{
+	size_t avail_size = 1 << 20; //1M
+	char *device = "./test_files_good.hex";
+
+	dfs_pcreate(device, avail_size);
+
+	MU_RUN_TEST(create_file);
+	MU_RUN_TEST(open_close_file);
+	MU_RUN_TEST(read_write_file);
+}
+
+//===File function errors===
 
 
 int main()
@@ -276,6 +372,7 @@ int main()
 	MU_RUN_SUITE(dfs_partition_errors);
 	MU_RUN_SUITE(dfs_directories_good);
 	MU_RUN_SUITE(dfs_directories_errors);
+	MU_RUN_SUITE(dfs_files_good);
 	MU_REPORT();
 	
 	return MU_EXIT_CODE;
