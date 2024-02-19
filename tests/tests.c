@@ -1,4 +1,4 @@
-//DPaths.c - Tests
+//tests.c - Tests
 
 #include <stdlib.h>
 

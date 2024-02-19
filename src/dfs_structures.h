@@ -1,4 +1,4 @@
-//didasFS_structures.h - Defines internal structures
+//dfs_structures.h - Defines internal structures
 
 #ifndef DIDASFS_STRUCTURES_H
 #define DIDASFS_STRUCTURES_H

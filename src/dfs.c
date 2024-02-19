@@ -1,4 +1,4 @@
-//didasFS.c - Implements DidasFS.h
+//dfs.c - Implements dfs.h
 
 #include <unistd.h>
 #include <fcntl.h>

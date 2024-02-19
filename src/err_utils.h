@@ -1,4 +1,4 @@
-//errUtils.h - Utility functions to handle errors
+//err_utils.h - Utility functions to handle errors
 
 #ifndef ERRUTILS_H
 #define ERRUTILS_H

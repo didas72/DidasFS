@@ -1,4 +1,4 @@
-//dPaths.c - Implements DPaths.c
+//paths.c - Implements paths.h
 
 #include "paths.h"
 

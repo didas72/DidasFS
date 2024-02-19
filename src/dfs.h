@@ -1,4 +1,4 @@
-//didasFS.h - Defines public interface of the file system
+//dfs.h - Defines public interface of the file system
 
 #ifndef DIDASFS_H
 #define DIDASFS_H
