@@ -38,49 +38,49 @@ dfs_err dfs_pcreate(const char *device, size_t total_size)
 	return DFS_SUCCESS;
 }
 
-dfs_err dfs_popen(const char *device, dfs_partition **pt_handle)
+dfs_err dfs_popen(const char *device, dfs_partition **pt)
 {
 	ERR_NULL(device, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(device));
-	ERR_NULL(pt_handle, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt_handle));
+	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
-	*pt_handle = NULL;
+	*pt = NULL;
 	dfs_err err;
 
-	dfs_partition* pt = malloc(sizeof(dfs_partition));
-	ERR_NULL(pt, DFS_FAILED_ALLOC, ERR_MSG_ALLOC_FAIL);
+	dfs_partition* ptr = malloc(sizeof(dfs_partition));
+	ERR_NULL(ptr, DFS_FAILED_ALLOC, ERR_MSG_ALLOC_FAIL);
 
-	pt->device = open(device, O_RDWR | O_SYNC);
-	ERR_IF_FREE1(pt->device == -1, DFS_FAILED_DEVICE_OPEN, pt, "Failed to open device %s.\n", device);
+	ptr->device = open(device, O_RDWR | O_SYNC);
+	ERR_IF_FREE1(ptr->device == -1, DFS_FAILED_DEVICE_OPEN, ptr, "Failed to open device %s.\n", device);
 
-	ERR_NZERO_CLEANUP_FREE1((err = validate_partition_header(pt)), err,
-		close(pt->device), pt, "Partition header validation failed.\n");
+	ERR_NZERO_CLEANUP_FREE1((err = validate_partition_header(ptr)), err,
+		close(ptr->device), ptr, "Partition header validation failed.\n");
 
 	//Determine address of root block for fast access
 	uint32_t usage_map_size;
-	lseek(pt->device, 4, SEEK_SET);
-	ssize_t readc = read(pt->device, &usage_map_size, sizeof(uint32_t));
+	lseek(ptr->device, 4, SEEK_SET);
+	ssize_t readc = read(ptr->device, &usage_map_size, sizeof(uint32_t));
 	ERR_IF_CLEANUP_FREE1(readc != sizeof(uint32_t), DFS_FAILED_DEVICE_READ,
-		close(pt->device), pt, ERR_MSG_DEVICE_READ_FAIL);
+		close(ptr->device), ptr, ERR_MSG_DEVICE_READ_FAIL);
 
-	pt->root_blk_addr = determine_first_blk_addr(usage_map_size);
-	pt->blk_count = usage_map_size << 3;
+	ptr->root_blk_addr = determine_first_blk_addr(usage_map_size);
+	ptr->blk_count = usage_map_size << 3;
 
-	ERR_NZERO_CLEANUP_FREE1((err = load_blk_map(pt)), err, close(pt->device), pt, "Failed to load block map.\n");
+	ERR_NZERO_CLEANUP_FREE1((err = load_blk_map(ptr)), err, close(ptr->device), ptr, "Failed to load block map.\n");
 
-	*pt_handle = pt;
+	*pt = ptr;
 	return DFS_SUCCESS;
 }
 
-dfs_err dfs_pclose(dfs_partition *pt_handle)
+dfs_err dfs_pclose(dfs_partition *pt)
 {
-	ERR_NULL(pt_handle, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt_handle));
+	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
 	dfs_err err;
 
-	ERR_NZERO((err = flush_full_blk_map(pt_handle)), err, "Failed to flush block map.\n");
-	ERR_NZERO((err = destroy_blk_map(pt_handle)), err, "Failed to destroy block map.\n");
-	close(pt_handle->device);
-	free(pt_handle);
+	ERR_NZERO((err = flush_full_blk_map(pt)), err, "Failed to flush block map.\n");
+	ERR_NZERO((err = destroy_blk_map(pt)), err, "Failed to destroy block map.\n");
+	close(pt->device);
+	free(pt);
 
 	return DFS_SUCCESS;
 }
@@ -270,7 +270,7 @@ dfs_err dfs_fread(dfs_partition *pt, const int descriptor, const void *buffer, c
 	return DFS_SUCCESS;
 }
 
-dfs_err dfs_fseek(dfs_partition *pt, const int descriptor, const size_t pos /*TODO: WHENCE and return position*/)
+dfs_err dfs_fset_pos(dfs_partition *pt, const int descriptor, const size_t pos)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
@@ -279,6 +279,18 @@ dfs_err dfs_fseek(dfs_partition *pt, const int descriptor, const size_t pos /*TO
 	ERR_IF((err = handle_get(pt, descriptor, &file)), err, ERR_MSG_HANDLE_FETCH_FAIL(descriptor));
 
 	return set_stream_pos(pt, pos, file);
+}
+
+dfs_err dfs_fget_pos(dfs_partition *pt, const int descriptor, size_t *pos)
+{
+	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
+	ERR_NULL(pos, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pos));
+
+	dfs_err err;
+	dfs_file *file;
+	ERR_IF((err = handle_get(pt, descriptor, &file)), err, ERR_MSG_HANDLE_FETCH_FAIL(descriptor));
+
+	return file->head;
 }
 #pragma endregion
 

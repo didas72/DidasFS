@@ -2,7 +2,7 @@
 
 REMINDER: Cleanup TODO in code
 
-TEST: File seeking
+TEST: dfs_fset_pos dfs_fget_pos
 
 ADD FEATURE: Cleanup check (get number of open files, maybe also partitions)
 

@@ -48,7 +48,7 @@ typedef struct
 	uint32_t entry_idx;
 } entry_ptr_loc;
 
-typedef struct dfs_file
+typedef struct
 {
 	//Handle tracking
 	bool present;
@@ -59,7 +59,7 @@ typedef struct dfs_file
 	size_t head;
 	blk_idx_t cur_blk_idx, first_blk_idx;
 	entry_ptr_loc entry_loc;
-} _dfs_file;
+} dfs_file;
 
 
 //==="Public" logical representations===

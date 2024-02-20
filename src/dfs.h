@@ -14,8 +14,6 @@ typedef int dfs_err;
 typedef uint32_t dfs_filem_flags;
 ///@brief Represents a partition handle
 typedef struct dfs_partition dfs_partition;
-///@brief Represents a file handle
-typedef struct dfs_file dfs_file;
 
 
 //===Constants===
@@ -76,7 +74,7 @@ typedef struct dfs_file dfs_file;
  * @brief Initializes a partition on the given file/device
  * 
  * @param device Path to the file/device to use
- * @param dataSize The size of the data space to allocate
+ * @param total_size The maximum size the partition may have
  * @return int containing the error code for the operation
  */
 dfs_err dfs_pcreate(const char *device, size_t total_size);
@@ -84,17 +82,17 @@ dfs_err dfs_pcreate(const char *device, size_t total_size);
  * @brief Opens an existing partition from a file/device
  * 
  * @param device Path to the file/device to use
- * @param pt_handle Pointer to a partition handle pointer
+ * @param pt Pointer to a partition handle pointer
  * @return int containing the error code for the operation
  */
 dfs_err dfs_popen(const char *device, dfs_partition **pt);
 /**
  * @brief Closes an open partition, releasing all associated resources
  * 
- * @param pt_handle Pointer to a partition handle
+ * @param pt Pointer to a partition handle
  * @return int containing the error code for the operation
  */
-dfs_err dfs_pclose(dfs_partition *pt_handle);
+dfs_err dfs_pclose(dfs_partition *pt);
 
 /**
  * @brief Creates an empty directory at the specified path
@@ -118,34 +116,38 @@ dfs_err dfs_fcreate(dfs_partition *pt, const char *path);
  * 
  * @param pt Pointer to a partition handle to be used
  * @param path Path of the directory to be created
- * @param fsHandle Pointer to the file handle pointer to populate
+ * @param flags File mode flags to be used
+ * @param descriptor Pointer to the file descriptor to populate
  * @return int containing the error code for the operation
  */
 dfs_err dfs_fopen(dfs_partition *pt, const char *path, const dfs_filem_flags flags, int *descriptor);
 /**
- * @brief Closes an open file handle and flushes and buffered changes
+ * @brief Closes an open file handle and flushes buffered changes
  * 
  * @param fs Pointer to the file handle to be closed
+ * @param descriptor Pointer to the file descriptor to populate
  * @return int containing the error code for the operation
  */
 dfs_err dfs_fclose(dfs_partition *pt, const int descriptor);
 
 /**
- * @brief Writes a block of data to a stream
+ * @brief Writes a block of data to a file
  * 
+ * @param pt Pointer to a partition handle to be used
+ * @param descriptor Descriptor of the file to be written to
  * @param buffer Pointer to the buffer to write the data from
  * @param len Length in bytes of the data to be written
- * @param fs Pointer to the file handle to write to
  * @param written Referenced variable will be set to the actual number of bytes written
  * @return int containing the error code for the operation
  */
 dfs_err dfs_fwrite(dfs_partition *pt, const int descriptor, const void *buffer, const size_t len, size_t *written);
 /**
- * @brief Reads a block of data from a stream
+ * @brief Reads a block of data from a file
  * 
+ * @param pt Pointer to a partition handle to be used
+ * @param descriptor Descriptor of the file to be read from
  * @param buffer Pointer to a buffer to read the data to
  * @param len Length in bytes of the data to be read
- * @param fs Pointer to the file handle to read from
  * @param written Referenced variable will be set to the actual number of bytes read
  * @return int containing the error code for the operation
  */
@@ -153,9 +155,19 @@ dfs_err dfs_fread(dfs_partition *pt, const int descriptor, const void *buffer, c
 /**
  * @brief Sets the stream position
  * 
+ * @param pt Pointer to a partition handle to be used
+ * @param descriptor Descriptor of the file to be read from
  * @param pos The new position to set the stream to
- * @param fs Pointer to the file handle to modify
  * @return int containing the error code for the operation
  */
-dfs_err dfs_fseek(dfs_partition *pt, const int descriptor, const size_t pos /*TODO: WHENCE and return position*/);
+dfs_err dfs_fset_pos(dfs_partition *pt, const int descriptor, const size_t pos);
+/**
+ * @brief Gets the stream position
+ * 
+ * @param pt Pointer to a partition handle to be used
+ * @param descriptor Descriptor of the file to be read from
+ * @param pos Referenced variable will be set to the current stream position
+ * @return dfs_err 
+ */
+dfs_err dfs_fget_pos(dfs_partition *pt, const int descriptor, size_t *pos);
 #endif
