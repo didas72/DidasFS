@@ -14,7 +14,7 @@ ADD FEATURE:
 * IO interface: ftruncate, fsync (flush)    [DONE: fopen, fread, fwrite, fclose]
 * Management interface: rmdir, rmfile (rm)    [DONE: mkdir, create (touch)]
 
-ADD FEATURE: Error checking partition header
+ADD FEATURE: Error checking partition header  
 ADD FEATURE: Partition layout allow bootloader
 
 ADD FEATURE:
@@ -24,11 +24,11 @@ ADD FEATURE:
 * Copy/move file
 * Check total free space
 
-PERFORMANCE: set_stream_pos should not seek from beggining
-PERFORMANCE: Make blk_map searches in groups (byte sized for example)
-PERFORMANCE: Make blk_map changes buffered
-PERFORMANCE: Make reads/writes buffered
-REMINDER: Ensure flushes when closing streams (both in FS and in system)
+PERFORMANCE: set_stream_pos should not seek from beggining  
+PERFORMANCE: Make blk_map searches in groups (byte sized for example)  
+PERFORMANCE: Make blk_map changes buffered  
+PERFORMANCE: Make reads/writes buffered  
+REMINDER: Ensure flushes when closing streams (both in FS and in system)  
 
 OPTIONAL FEATURES:
 

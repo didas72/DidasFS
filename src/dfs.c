@@ -290,7 +290,9 @@ dfs_err dfs_fget_pos(dfs_partition *pt, const int descriptor, size_t *pos)
 	dfs_file *file;
 	ERR_IF((err = handle_get(pt, descriptor, &file)), err, ERR_MSG_HANDLE_FETCH_FAIL(descriptor));
 
-	return file->head;
+	*pos = file->head;
+
+	return DFS_SUCCESS;
 }
 #pragma endregion
 

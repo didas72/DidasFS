@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 
-#define ERR_MSG(fmt, ...) do { fprintf(stderr, "DFS_ERR: " fmt, ##__VA_ARGS__); } while(0)
+#define ERR_MSG(fmt, ...) do { fprintf(stderr, "DFS_ERR: [%s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__); } while(0)
 
 #define ERR_MSG_NULL_ARG(argname) "Argument '"#argname"' cannot be NULL.\n"
 #define ERR_MSG_ALLOC_FAIL "Could not allocate required memory.\n"

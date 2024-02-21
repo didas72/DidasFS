@@ -340,11 +340,63 @@ MU_TEST(read_write_file)
 
 	dfs_fclose(pt, fd);
 	dfs_fopen(pt, "read_write.file", DFS_FILEM_READ, &fd);
-	err = dfs_fread(pt, fd, buff, strlen(data), &io);
 
+	err = dfs_fread(pt, fd, buff, strlen(data), &io);
 	mu_assert_int_eq(0, err);
 	mu_assert_int_eq(strlen(data), io);
 	mu_assert_string_eq(data, buff);
+
+	dfs_fclose(pt, fd);
+	dfs_pclose(pt);
+}
+
+MU_TEST(seek_file)
+{
+	fprintf(stderr, "\nEntering %s\n\n", __func__);
+
+	dfs_err err;
+	dfs_partition *pt;
+	char *device = "./test_files_good.hex";
+	char *data = "I am a test string that will use space to be able to seek.\n";
+
+	int fd;
+	size_t pos;
+	dfs_popen(device, &pt);
+	if (dfs_fcreate(pt, "seek.file")) mu_fail("Failed to open file.");
+	dfs_fopen(pt, "seek.file", DFS_FILEM_WRITE, &fd);
+	dfs_fwrite(pt, fd, data, strlen(data), NULL);
+
+	err = dfs_fget_pos(pt, fd, &pos);
+	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(strlen(data), pos);
+
+	err = dfs_fset_pos(pt, fd, 0);
+	mu_assert_int_eq(0, err);
+
+	err = dfs_fget_pos(pt, fd, &pos);
+	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(0, pos);
+
+	err = dfs_fset_pos(pt, fd, 5);
+	mu_assert_int_eq(0, err);
+
+	err = dfs_fget_pos(pt, fd, &pos);
+	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(5, pos);
+
+	err = dfs_fset_pos(pt, fd, 500);
+	mu_assert_int_eq(0, err);
+
+	err = dfs_fget_pos(pt, fd, &pos);
+	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(500, pos);
+
+	err = dfs_fset_pos(pt, fd, 600);
+	mu_assert_int_eq(0, err);
+
+	err = dfs_fget_pos(pt, fd, &pos);
+	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(600, pos);
 
 	dfs_fclose(pt, fd);
 	dfs_pclose(pt);
@@ -360,7 +412,7 @@ MU_TEST_SUITE(dfs_files_good)
 	MU_RUN_TEST(create_file);
 	MU_RUN_TEST(open_close_file);
 	MU_RUN_TEST(read_write_file);
-	//TODO: Seek
+	MU_RUN_TEST(seek_file);
 }
 
 //===File function errors===
