@@ -18,10 +18,19 @@
 
 
 
+static int log_level = DFS_LOG_ERROR;
+
+
+
 //============================
 //= Function implementations =
 //============================
 #pragma region Function implementations
+void dfs_set_log_level(int level)
+{
+	log_level = level;
+}
+
 dfs_err dfs_pcreate(const char *device, size_t total_size)
 {
 	ERR_NULL(device, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(device));
@@ -742,7 +751,7 @@ dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t cur_bl
 
 	if (!next_idx) //Couldn't find dir/file in current block
 	{
-		ERR_IF(!cur_header.next_blk, DFS_PATH_NOT_FOUND, "Could not find '%s', part of '%s'.\n", search_name, path);
+		if (!cur_header.next_blk) return DFS_PATH_NOT_FOUND;
 
 		return find_entry_ptr_recursion(pt, cur_header.next_blk, path, entry, entry_loc);
 	}
@@ -909,7 +918,7 @@ dfs_err create_object(dfs_partition *pt, const char *path, const uint16_t flags)
 	dfs_path_get_name(name, path);
 
 	//Find parent dir
-	ERR_NZERO((err = find_entry_ptr(pt, parent_dir, NULL, &parent_loc)), err, "Could not find entry for the requested file.\n");
+	ERR_NZERO((err = find_entry_ptr(pt, parent_dir, NULL, &parent_loc)), err, "Could not find parent directory.\n");
 
 	//Find and reserve free block
 	ERR_NZERO((err = find_free_blk(pt, &new_blk_idx)), err, "Could not find free block.\n");

@@ -68,7 +68,15 @@ typedef struct dfs_partition dfs_partition;
 #define DFS_FILEM_SHARE_WRITE (dfs_filem_flags)0x00000008
 #define DFS_FILEM_SHARE_RDWR (DFS_FILEM_SHARE_READ | DFS_FILEM_SHARE_WRITE)
 
+//===Logging levels===
+#define DFS_LOG_NONE 0
+#define DFS_LOG_ERROR 1
+#define DFS_LOG_WARNING 2
+#define DFS_LOG_DEBUG 3
 
+
+
+void dfs_set_log_level(int level);
 
 /**
  * @brief Initializes a partition on the given file/device

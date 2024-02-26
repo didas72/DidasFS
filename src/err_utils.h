@@ -5,7 +5,15 @@
 
 #include <stdio.h>
 
-#define ERR_MSG(fmt, ...) do { fprintf(stderr, "DFS_ERR: [%s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__); } while(0)
+#define MSG(level, stream, fmt, ...) do { \
+	if (log_level >= level) fprintf(stream, fmt, ##__VA_ARGS__); \
+	} while(0)
+
+#define ERR_MSG(fmt, ...) MSG(DFS_LOG_ERROR, stderr, "DFS_ERR: [%s:%d] " fmt, __FILE__, __LINE__, ##__VA_ARGS__)
+
+#define WARN_MSG(fmt, ...) MSG(DFS_LOG_WARNING, stderr, "DFS_WARN: " fmt, ##__VA_ARGS__)
+
+#define DEBUG_MSG(fmt, ...) MSG(DFS_LOG_DEBUG, stderr, "DFS_DEBUG: " fmt, ##__VA_ARGS__)
 
 #define ERR_MSG_NULL_ARG(argname) "Argument '"#argname"' cannot be NULL.\n"
 #define ERR_MSG_ALLOC_FAIL "Could not allocate required memory.\n"
