@@ -2,35 +2,36 @@
 
 REMINDER: Cleanup TODO in code
 
-TEST: dfs_fset_pos dfs_fget_pos
+FIX:
 
-ADD FEATURE: Cleanup check (get number of open files, maybe also partitions)
-
-FIX: Missing error on too long file/dir names
-FIX: Object creation not accepting flags
+* Missing error on too long file/dir names
+* Object creation not accepting flags
 
 ADD FEATURE:
 
-* IO interface: ftruncate, fsync (flush)    [DONE: fopen, fread, fwrite, fclose]
-* Management interface: rmdir, rmfile (rm)    [DONE: mkdir, create (touch)]
-
-ADD FEATURE: Error checking partition header  
-ADD FEATURE: Partition layout allow bootloader
+* ftruncate
+* rmdir/rmdir
+* cp/mv
+* access
+* fsync (flush) \[once buffering is implemented\]
+* List files/directories (dirent?)
+* Check total free space (statvfs?)
 
 ADD FEATURE:
 
-* Exists file/directory
-* List files/directories
-* Copy/move file
-* Check total free space
+* Cleanup check (get number of open files, maybe also partitions)
+* Error checking partition header
 
-PERFORMANCE: set_stream_pos should not seek from beggining  
-PERFORMANCE: Make blk_map searches in groups (byte sized for example)  
-PERFORMANCE: Make blk_map changes buffered  
-PERFORMANCE: Make reads/writes buffered  
-REMINDER: Ensure flushes when closing streams (both in FS and in system)  
+PERFORMANCE:
+
+* set_stream_pos should not seek from beggining
+* Make blk_map searches in groups (byte sized for example)
+* Make blk_map changes buffered
+* Make reads/writes buffered
+* **Ensure flushes when closing streams (both in FS and in system)**
 
 OPTIONAL FEATURES:
 
+* Partition layout allow bootloader
 * Verify and cleanup FS
 * Recover FS
