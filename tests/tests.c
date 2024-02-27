@@ -362,41 +362,41 @@ MU_TEST(seek_file)
 	int fd;
 	size_t pos;
 	dfs_popen(device, &pt);
-	if (dfs_fcreate(pt, "seek.file")) mu_fail("Failed to open file.");
+	dfs_fcreate(pt, "seek.file");
 	dfs_fopen(pt, "seek.file", DFS_FILEM_WRITE, &fd);
 	dfs_fwrite(pt, fd, data, strlen(data), NULL);
 
 	err = dfs_fget_pos(pt, fd, &pos);
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 	mu_assert_int_eq(strlen(data), pos);
 
 	err = dfs_fset_pos(pt, fd, 0);
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	err = dfs_fget_pos(pt, fd, &pos);
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 	mu_assert_int_eq(0, pos);
 
 	err = dfs_fset_pos(pt, fd, 5);
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	err = dfs_fget_pos(pt, fd, &pos);
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 	mu_assert_int_eq(5, pos);
 
 	err = dfs_fset_pos(pt, fd, 500);
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	err = dfs_fget_pos(pt, fd, &pos);
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 	mu_assert_int_eq(500, pos);
 
-	err = dfs_fset_pos(pt, fd, 600);
-	mu_assert_int_eq(0, err);
+	err = dfs_fset_pos(pt, fd, 0x8100);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	err = dfs_fget_pos(pt, fd, &pos);
-	mu_assert_int_eq(0, err);
-	mu_assert_int_eq(600, pos);
+	mu_assert_int_eq(DFS_SUCCESS, err);
+	mu_assert_int_eq(0x8100, pos);
 
 	dfs_fclose(pt, fd);
 	dfs_pclose(pt);

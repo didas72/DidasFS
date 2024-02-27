@@ -622,7 +622,7 @@ dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file)
 
 	while (cur_pos != position)
 	{
-		left = cur_pos - position;
+		left = position - cur_pos;
 		readc = device_read_at_blk(cur_blk, &cur_header, sizeof(block_header), pt);
 		ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
@@ -631,7 +631,6 @@ dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file)
 			if (cur_header.next_blk)
 			{
 				//FIXME: Might not be needed, if next_blk is set then all space should be in use
-
 				//Update used space if neeed
 				if (cur_header.used_space < BLOCK_DATA_SIZE)
 				{
@@ -674,7 +673,7 @@ dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file)
 }
 #pragma endregion
 #pragma region Block navigation
-dfs_err find_entry_ptr(const dfs_partition* pt, const char *path, entry_pointer *entry, entry_ptr_loc *entry_loc)
+dfs_err find_entry_ptr(const dfs_partition *pt, const char *path, entry_pointer *entry, entry_ptr_loc *entry_loc)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(path, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(path));
