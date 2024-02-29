@@ -11,7 +11,7 @@
 #include "../src/dfs_structures.h"
 //#include "../src/dfs_internals.h"
 
-//===Path functions===
+#pragma region Path functions
 MU_TEST(combine)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
@@ -54,9 +54,9 @@ MU_TEST_SUITE(dfs_path_all)
 	MU_RUN_TEST(get_parent);
 	MU_RUN_TEST(get_name);
 }
+#pragma endregion
 
-
-//===Partition functions===
+#pragma region Partition functions
 MU_TEST(create_partition)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
@@ -93,9 +93,9 @@ MU_TEST_SUITE(dfs_partition_good)
 	MU_RUN_TEST(create_partition);
 	MU_RUN_TEST(open_close_partition);
 }
+#pragma endregion
 
-
-//===Partition function errors===
+#pragma region Partition function errors
 MU_TEST(create_partition_errors)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
@@ -166,9 +166,9 @@ MU_TEST_SUITE(dfs_partition_errors)
 	MU_RUN_TEST(open_close_partition_errors);
 	MU_RUN_TEST(open_corrupt_partition_errors);
 }
+#pragma endregion
 
-
-//===Directory functions===
+#pragma region Directory functions
 MU_TEST(create_directory)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
@@ -223,8 +223,23 @@ MU_TEST_SUITE(dfs_directories_good)
 	MU_RUN_TEST(create_directory);
 	MU_RUN_TEST(create_directory_nested);
 }
+#pragma endregion
 
-//===Directory function errors===
+#pragma region Directory function errors
+MU_TEST(null_args_directories_errors)
+{
+	fprintf(stderr, "\nEntering %s\n\n", __func__);
+
+	dfs_err err;
+	dfs_partition *pt;
+	char *device = "./test_directories_errors.hex";
+
+	dfs_popen(device, &pt);
+
+	err = dfs_dcreate(pt, NULL);
+	mu_assert(err = DFS_NVAL_ARGS, "dfs_dcreate accepted a NULL path.");
+}
+
 MU_TEST(duplicated_directories_errors)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
@@ -261,11 +276,13 @@ MU_TEST_SUITE(dfs_directories_errors)
 
 	dfs_pcreate(device, avail_size);
 
+	MU_RUN_TEST(null_args_directories_errors);
 	MU_RUN_TEST(duplicated_directories_errors);
 	MU_RUN_TEST(empty_name_directories_errors);
 }
+#pragma endregion
 
-//===File functions===
+#pragma region File functions
 MU_TEST(create_file)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
@@ -414,9 +431,89 @@ MU_TEST_SUITE(dfs_files_good)
 	MU_RUN_TEST(read_write_file);
 	MU_RUN_TEST(seek_file);
 }
+#pragma endregion
 
-//===File function errors===
+#pragma region File function errors
+MU_TEST(null_args_files_errors)
+{
+	fprintf(stderr, "\nEntering %s\n\n", __func__);
 
+	dfs_err err;
+	dfs_partition *pt;
+	char *device = "./test_files_errors.hex";
+
+	dfs_popen(device, &pt);
+
+	err = dfs_dcreate(pt, NULL);
+	mu_assert(err = DFS_NVAL_ARGS, "dfs_fcreate accepted a NULL path.");
+}
+
+MU_TEST(duplicated_files_errors)
+{
+	fprintf(stderr, "\nEntering %s\n\n", __func__);
+
+	dfs_err err;
+	dfs_partition *pt;
+	char *device = "./test_files_errors.hex";
+
+	dfs_popen(device, &pt);
+	dfs_fcreate(pt, "dup.file");
+
+	err = dfs_fcreate(pt, "dup.file");
+	mu_assert(err == DFS_ALREADY_EXISTS, "dfs_fcreate created a duplciated file.");
+}
+
+MU_TEST(empty_name_files_errors)
+{
+	fprintf(stderr, "\nEntering %s\n\n", __func__);
+
+	dfs_err err;
+	dfs_partition *pt;
+	char *device = "./test_files_errors.hex";
+
+	dfs_popen(device, &pt);
+
+	err = dfs_fcreate(pt, "");
+	mu_assert(err == DFS_NVAL_PATH, "dfs_fcreate accepted an emtpy file name.");
+
+	int fd;
+	err = dfs_fopen(pt, "", DFS_FILEM_RDWR, &fd);
+	mu_assert(err = DFS_NVAL_PATH, "dfs_fopen accepted an emtpy file name.");
+}
+
+MU_TEST(invalid_dir_files_errors)
+{
+	fprintf(stderr, "\nEntering %s\n\n", __func__);
+
+	dfs_err err;
+	dfs_partition *pt;
+	char *device = "./test_files_errors.hex";
+
+	dfs_popen(device, &pt);
+
+	err = dfs_fcreate(pt, "nodir/test.file");
+	mu_assert(err == DFS_PATH_NOT_FOUND, "dfs_fcreate accepted a path to a non-existing directory.");
+
+	int fd;
+	err = dfs_fopen(pt, "nodir/test.file", DFS_FILEM_SHARE_RDWR, &fd);
+	mu_assert(err == DFS_PATH_NOT_FOUND, "dfs_fopen accepted a path to a non-existing directory.");
+}
+
+//TODO: Finish tests
+
+MU_TEST_SUITE(dfs_files_errors)
+{
+	size_t avail_size = 1 << 20; //1M
+	char *device = "./test_files_errors.hex";
+
+	dfs_pcreate(device, avail_size);
+
+	MU_RUN_TEST(null_args_files_errors);
+	MU_RUN_TEST(duplicated_files_errors);
+	MU_RUN_TEST(empty_name_files_errors);
+	MU_RUN_TEST(invalid_dir_files_errors);
+}
+#pragma endregion
 
 
 int main()
@@ -427,6 +524,7 @@ int main()
 	MU_RUN_SUITE(dfs_directories_good);
 	MU_RUN_SUITE(dfs_directories_errors);
 	MU_RUN_SUITE(dfs_files_good);
+	MU_RUN_SUITE(dfs_files_errors);
 	MU_REPORT();
 	
 	return MU_EXIT_CODE;

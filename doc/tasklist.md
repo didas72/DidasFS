@@ -2,6 +2,10 @@
 
 REMINDER: Cleanup TODO in code
 
+TEST:
+
+* File functions errors
+
 FIX:
 
 * Missing error on too long file/dir names
@@ -10,7 +14,7 @@ FIX:
 ADD FEATURE:
 
 * ftruncate
-* rmdir/rmdir
+* rmdir/rm
 * cp/mv
 * access
 * fsync (flush) \[once buffering is implemented\]
