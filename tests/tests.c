@@ -237,7 +237,7 @@ MU_TEST(null_args_directories_errors)
 	dfs_popen(device, &pt);
 
 	err = dfs_dcreate(pt, NULL);
-	mu_assert(err = DFS_NVAL_ARGS, "dfs_dcreate accepted a NULL path.");
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_dcreate accepted a NULL path.");
 }
 
 MU_TEST(duplicated_directories_errors)
@@ -447,49 +447,58 @@ MU_TEST(null_args_files_errors)
 
 	//==fcreate==
 	err = dfs_fcreate(NULL, "test.file");
-	mu_assert(err = DFS_NVAL_ARGS, "dfs_fcreate accepted a NULL partition.");
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_fcreate accepted a NULL partition.");
 
 	err = dfs_fcreate(pt, NULL);
-	mu_assert(err = DFS_NVAL_ARGS, "dfs_fcreate accepted a NULL path.");
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_fcreate accepted a NULL path.");
 
 	//==fopen==
 	err = dfs_fopen(NULL, "test.file", DFS_FILEM_RDWR, &fd);
-	mu_assert(err = DFS_NVAL_ARGS, "dfs_fopen accepted a NULL partition.");
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_fopen accepted a NULL partition.");
 
 	err = dfs_fopen(pt, NULL, DFS_FILEM_RDWR, &fd);
-	mu_assert(err = DFS_NVAL_ARGS, "dfs_fopen accepted a NULL path.");
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_fopen accepted a NULL path.");
 
 	err = dfs_fopen(pt, "test.file", 0, &fd);
-	mu_assert(err = DFS_NVAL_ARGS, "dfs_fopen accepted empty file mode flags.");
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_fopen accepted empty file mode flags.");
 
 	err = dfs_fopen(pt, "test.file", DFS_FILEM_RDWR, NULL);
-	mu_assert(err = DFS_NVAL_ARGS, "dfs_fopen accepted a NULL fd pointer.");
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_fopen accepted a NULL fd pointer.");
 
 	//setup
 	char buff[16];
+	size_t pos;
 	dfs_fcreate(pt, "argtester.file");
 	dfs_fopen(pt, "argtester.file", DFS_FILEM_RDWR, &fd);
 
 	//==fclose==
 	err = dfs_fclose(NULL, fd);
-	mu_assert(err = DFS_NVAL_ARGS, "dfs_fclose accepted a NULL partition.");
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_fclose accepted a NULL partition.");
 
 	//==fwrite==
 	err = dfs_fwrite(NULL, fd, buff, 0, NULL);
-	mu_assert(err = DFS_NVAL_ARGS, "dfs_fwrite accepted a NULL partition.");
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_fwrite accepted a NULL partition.");
 
 	err = dfs_fwrite(pt, fd, NULL, 0, NULL);
-	mu_assert(err = DFS_NVAL_ARGS, "dfs_fwrite accepted a NULL buffer.");
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_fwrite accepted a NULL buffer.");
 
 	//==fread==
 	err = dfs_fread(NULL, fd, buff, 0, NULL);
-	mu_assert(err = DFS_NVAL_ARGS, "dfs_fread accepted a NULL partition.");
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_fread accepted a NULL partition.");
 
 	err = dfs_fread(pt, fd, NULL, 0, NULL);
-	mu_assert(err = DFS_NVAL_ARGS, "dfs_fread accepted a NULL buffer.");
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_fread accepted a NULL buffer.");
 
 	//==fset_pos==
+	err = dfs_fset_pos(NULL, fd, 0);
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_fset_pos accepted a NULL partition.");
+
 	//==fget_pos==
+	err = dfs_fget_pos(NULL, fd, &pos);
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_fget_pos accepted a NULL partition.");
+
+	err = dfs_fget_pos(pt, fd, NULL);
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_fget_pos accepted a NULL position.");
 }
 
 MU_TEST(duplicated_files_errors)
@@ -522,7 +531,7 @@ MU_TEST(empty_name_files_errors)
 
 	int fd;
 	err = dfs_fopen(pt, "", DFS_FILEM_RDWR, &fd);
-	mu_assert(err = DFS_NVAL_PATH, "dfs_fopen accepted an emtpy file name.");
+	mu_assert(err == DFS_NVAL_PATH, "dfs_fopen accepted an emtpy file name.");
 }
 
 MU_TEST(invalid_dir_files_errors)
