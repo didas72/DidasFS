@@ -189,5 +189,10 @@ char *dfs_path_get_tail(char *destination, const char *path)
 
 bool dfs_path_is_empty(const char* path)
 {
-	return !strlen(path);
+	size_t len = strlen(path);
+
+	if (!len) return true;
+	if (len == 1) return *path == DIR_SEPARATOR_CH;
+
+	return false;
 }

@@ -110,6 +110,9 @@ dfs_err dfs_fopen(dfs_partition *pt, const char *path, const dfs_filem_flags fla
 	ERR_NULL(path, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(path));
 	ERR_NULL(descriptor, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(descriptor));
 
+	ERR_IF(dfs_path_is_empty(path), DFS_NVAL_PATH, ERR_MSG_EMPTY_PATH("open"));
+	ERR_IF(flags == 0, DFS_NVAL_ARGS, ERR_MSG_NVAL_FLAGS("file opening"));
+
 	*descriptor = -1;
 
 	int new_descriptor = get_lowest_unused_descriptor(*pt);
