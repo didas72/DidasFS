@@ -10,7 +10,7 @@ OBJ=build/obj
 BIN=build/bin
 DOC=doc
 
-OUTBIN=$(BIN)/main.a
+OUTBIN=$(BIN)/libdfs.a
 TESTBIN=$(BIN)/tester
 
 SRCS=$(shell find $(SRC) -type f -name '*.c')
