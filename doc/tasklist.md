@@ -2,10 +2,6 @@
 
 REMINDER: Cleanup TODO in code
 
-TEST:
-
-* File functions errors
-
 FIX:
 
 * Missing error on too long file/dir names

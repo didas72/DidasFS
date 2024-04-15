@@ -552,8 +552,6 @@ MU_TEST(invalid_dir_files_errors)
 	mu_assert(err == DFS_PATH_NOT_FOUND, "dfs_fopen accepted a path to a non-existing directory.");
 }
 
-//TODO: Finish tests
-
 MU_TEST_SUITE(dfs_files_errors)
 {
 	size_t avail_size = 1 << 20; //1M
