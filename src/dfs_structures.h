@@ -24,6 +24,7 @@
 #define ENTRY_FLAG_READWRITE (file_flags_t)0x0000
 #define ENTRY_FLAG_READONLY (file_flags_t)0x0002
 #define ENTRY_FLAG_SYSTEM (file_flags_t)0x0004
+#define ENTRY_FLAG_HIDDEN (file_flags_t)0x0008
 #pragma endregion
 
 
@@ -61,16 +62,15 @@ typedef struct
 	entry_ptr_loc entry_loc;
 } dfs_file;
 
-
-//==="Public" logical representations===
-typedef struct dfs_partition
+struct dfs_partition
 {
 	int device;
 	size_t root_blk_addr;
 	uint32_t blk_count;
 	blk_map *usage_map;
 	dfs_file open_handles[DFS_MAX_HANDLES];
-} _dfs_partition;
+};
+
 
 
 //==="Physical" representations===
@@ -95,7 +95,7 @@ typedef struct
 	blk_idx_t last_blk;
 	file_flags_t flags;
 	uint16_t resvd;
-	char name[20];
+	char name[MAX_PATH_NAME];
 } __attribute__((packed)) entry_pointer;
 
 

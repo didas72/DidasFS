@@ -306,6 +306,14 @@ dfs_err dfs_fget_pos(dfs_partition *pt, const int descriptor, size_t *pos)
 
 	return DFS_SUCCESS;
 }
+
+dfs_err dfs_dlist_entries(dfs_partition *pt, const char *path, size_t capacity, dfs_entry *entries, size_t *count)
+{return DFS_NOT_IMPLEMENTED;
+	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
+	ERR_NULL(path, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(path));
+
+	
+}
 #pragma endregion
 
 

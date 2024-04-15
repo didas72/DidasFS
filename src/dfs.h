@@ -6,6 +6,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "paths.c"
+
 
 //===Types===
 ///@brief Holds an error code
@@ -16,6 +18,15 @@ typedef uint16_t dfs_filec_flags;
 typedef uint32_t dfs_filem_flags;
 ///@brief Represents a partition handle
 typedef struct dfs_partition dfs_partition;
+
+
+//===Structs===
+typedef struct
+{
+	bool dir;
+	size_t length;
+	char name[MAX_PATH];
+} dfs_entry;
 
 
 //===Constants===
@@ -77,7 +88,12 @@ typedef struct dfs_partition dfs_partition;
 #define DFS_LOG_DEBUG 3
 
 
-
+//===Function declarations===
+/**
+ * @brief Changes the logging level for the library
+ * 
+ * @param level The logging level to be used
+*/
 void dfs_set_log_level(int level);
 
 /**
@@ -125,7 +141,7 @@ dfs_err dfs_fcreate(dfs_partition *pt, const char *path);
  * @brief Opens an existing file at the specified path
  * 
  * @param pt Pointer to a partition handle to be used
- * @param path Path of the directory to be created
+ * @param path Path of the file to be created
  * @param flags File mode flags to be used
  * @param descriptor Pointer to the file descriptor to populate
  * @return int containing the error code for the operation
@@ -180,4 +196,15 @@ dfs_err dfs_fset_pos(dfs_partition *pt, const int descriptor, const size_t pos);
  * @return dfs_err 
  */
 dfs_err dfs_fget_pos(dfs_partition *pt, const int descriptor, size_t *pos);
+
+/**
+ * @brief Lists entries present in a given directory
+ * 
+ * @param pt Pointer to a partition handle to be used
+ * @param path Path of the directory whose contents should be listed
+ * @param capacity Maximum number of entries that may be stored in entries
+ * @param entries Pointer to an array to store the found entries
+ * @param count Used to return the nunmber of entries stored
+*/
+dfs_err dfs_dlist_entries(dfs_partition *pt, const char *path, size_t capacity, dfs_entry *entries, size_t *count);
 #endif
