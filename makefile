@@ -2,7 +2,7 @@ AR=ar
 AR_FLAGS=rcs
 CC=gcc
 C_FLAGS=-Wall -Wextra -ggdb -Wno-unknown-pragmas
-VAL_FLAGS=--leak-check=full -s
+VAL_FLAGS=--leak-check=full --show-leak-kinds=all --track-origins=yes -s
 
 SRC=src
 TEST=tests
@@ -46,9 +46,9 @@ $(OBJ)/%.o: $(SRC)/%.c
 test: $(TESTBIN) clean-tests
 	./$(TESTBIN) 2> stderr_redirect.log
 
-$(TESTBIN): $(OBJS) $(TOBJS)
+$(TESTBIN): $(TOBJS) $(OUTBIN)
 	@mkdir -p $(@D)
-	$(CC) $(C_FLAGS) $^ -o $@
+	$(CC) $(C_FLAGS) $^ -o $@ -ldfs -L build/bin
 
 $(OBJ)/tests/%.o: $(TEST)/%.c
 	@mkdir -p $(@D)
