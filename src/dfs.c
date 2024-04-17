@@ -312,7 +312,7 @@ dfs_err dfs_dlist_entries(dfs_partition *pt, const char *path, size_t capacity, 
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(path, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(path));
 
-	ERR_IF(dfs_path_is_empty(path), DFS_NVAL_PATH, ERR_MSG_EMPTY_PATH("list contents of"));
+	//ERR_IF(dfs_path_is_empty(path), DFS_NVAL_PATH, ERR_MSG_EMPTY_PATH("list contents of"));
 
 	entry_pointer ptr;
 	dfs_err err;

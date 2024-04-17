@@ -66,7 +66,7 @@ MU_TEST(create_partition)
 	char *device = "./test_create_partition.hex";
 
 	err = dfs_pcreate(device, avail_size);
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 }
 
 MU_TEST(open_close_partition)
@@ -82,10 +82,10 @@ MU_TEST(open_close_partition)
 	mu_assert(err == 0, "Partition creation failed.");
 
 	err = dfs_popen(device, &pt);
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	err = dfs_pclose(pt);
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 }
 
 MU_TEST_SUITE(dfs_partition_good)
@@ -180,10 +180,10 @@ MU_TEST(create_directory)
 	dfs_popen(device, &pt);
 
 	err = dfs_dcreate(pt, "test dir");
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	err = dfs_dcreate(pt, "im at root");
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	dfs_pclose(pt);
 }
@@ -199,16 +199,16 @@ MU_TEST(create_directory_nested)
 	dfs_popen(device, &pt);
 
 	err = dfs_dcreate(pt, "test dir/more test dirs");
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	err = dfs_dcreate(pt, "test dir/testing...");
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	err = dfs_dcreate(pt, "test dir/more inside");
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	err = dfs_dcreate(pt, "test dir/more inside/im here");
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	dfs_pclose(pt);
 }
@@ -294,12 +294,12 @@ MU_TEST(create_file)
 	dfs_popen(device, &pt);
 
 	err = dfs_fcreate(pt, "create.file");
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	dfs_dcreate(pt, "dir1");
 
 	err = dfs_fcreate(pt, "dir1/create1.file");
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	dfs_pclose(pt);
 }
@@ -320,16 +320,16 @@ MU_TEST(open_close_file)
 	int fd;
 
 	err = dfs_fopen(pt, "open_close.file", DFS_FILEM_RDWR, &fd);
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	err = dfs_fclose(pt, fd);
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	err = dfs_fopen(pt, "dir2/open_close.file", DFS_FILEM_READ, &fd);
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	err = dfs_fclose(pt, fd);
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	dfs_pclose(pt);
 }
@@ -350,7 +350,7 @@ MU_TEST(read_write_file)
 	dfs_fopen(pt, "read_write.file", DFS_FILEM_WRITE, &fd);
 
 	err = dfs_fwrite(pt, fd, data, strlen(data), &io);
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 	mu_assert_int_eq(strlen(data), io);
 
 	char buff[64] = { 0 };
@@ -359,7 +359,7 @@ MU_TEST(read_write_file)
 	dfs_fopen(pt, "read_write.file", DFS_FILEM_READ, &fd);
 
 	err = dfs_fread(pt, fd, buff, strlen(data), &io);
-	mu_assert_int_eq(0, err);
+	mu_assert_int_eq(DFS_SUCCESS, err);
 	mu_assert_int_eq(strlen(data), io);
 	mu_assert_string_eq(data, buff);
 
@@ -566,6 +566,50 @@ MU_TEST_SUITE(dfs_files_errors)
 }
 #pragma endregion
 
+#pragma region Management functions
+MU_TEST(list_entries)
+{
+	fprintf(stderr, "\nEntering %s\n\n", __func__);
+
+	dfs_err err;
+	dfs_partition *pt;
+	char *device = "./test_management_good.hex";
+
+	size_t count;
+	dfs_entry entries[16] = { 0 };
+	dfs_popen(device, &pt);
+	
+	err = dfs_dlist_entries(pt, "", 16, entries, &count);
+	mu_assert_int_eq(DFS_SUCCESS, err);
+	mu_assert_int_eq(0, count);
+
+	dfs_pclose(pt);
+}
+
+MU_TEST_SUITE(dfs_management_good)
+{
+	size_t avail_size = 1 << 20; //1M
+	char *device = "./test_management_good.hex";
+
+	dfs_pcreate(device, avail_size);
+
+	MU_RUN_TEST(list_entries);
+}
+#pragma endregion
+
+#pragma region Management function errors
+MU_TEST_SUITE(dfs_management_errors)
+{
+	size_t avail_size = 1 << 20; //1M
+	char *device = "./test_management_errors.hex";
+
+	dfs_pcreate(device, avail_size);
+
+	//TODO: Add tests
+}
+#pragma endregion
+
+
 
 int main()
 {
@@ -576,7 +620,9 @@ int main()
 	MU_RUN_SUITE(dfs_directories_errors);
 	MU_RUN_SUITE(dfs_files_good);
 	MU_RUN_SUITE(dfs_files_errors);
+	MU_RUN_SUITE(dfs_management_good);
+	MU_RUN_SUITE(dfs_management_errors);
 	MU_REPORT();
-	
+
 	return MU_EXIT_CODE;
 }
