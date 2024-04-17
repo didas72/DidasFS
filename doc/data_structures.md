@@ -11,13 +11,14 @@ Data structures and layout in drive.
 Offset | Length | Type | Purpose
 -- | -- | -- | --
 0 | 4 | int | Magic number = 0x69DEAD69
-4 | 4 | int | Block map size (BMS) = block count / 8
+4 | 4 | int | Block count (BC)
 8 | 8 | N/A | Reserved
-16 | BMS | N/A | Block map
-DTS - 32 | 32 | entry_pointer | Root pointer
-DTS\* | BMS\*8\*BS | N/A | Data blocks
+16 | BMS\* | N/A | Block map
+DTS\* - 32 | 32 | entry_pointer | Root pointer
+DTS\* | BC\*BS | N/A | Data blocks
 
 **Remark:** Header size = 16  
+**Remark:** BMS = BC / 8  
 **Remark:** DTS (DaTa Start) = 512 \* ceil((16 + BMS - 32) / 512)  
 **Remark:** Maximum partition capacity = 1.407\*10^14 B ~ 127.937 TB
 
@@ -51,5 +52,8 @@ Offset | Length | Type | Purpose
 
 Bit | Name | Meaning
 -- | -- | --
-0 | Dir | 0=File; 1=Directory
-1-15 | Res | Reserved, zero out
+0 | DIR | 0=File; 1=Directory
+1 | RDONLY | 0=Read write; 1=Read only
+2 | SYS | 0=Normal file; 1=System file (no meaning for now)
+3 | HIDDEN | 0=Normal file; 1=Hidden file
+4-15 | RES | Reserved, set to zero

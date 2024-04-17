@@ -77,7 +77,7 @@ struct dfs_partition
 typedef struct
 {
 	uint32_t magic_number;
-	uint32_t usage_map_size;
+	blk_idx_t block_count;
 	uint64_t resvd;
 } __attribute__((packed)) partition_header;
 

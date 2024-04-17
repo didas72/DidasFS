@@ -555,9 +555,9 @@ entry_ptr_loc get_root_loc()
 }
 #pragma endregion
 #pragma region Code naming
-size_t determine_first_blk_addr(uint32_t usage_map_size)
+size_t determine_first_blk_addr(uint32_t blk_count)
 {
-	size_t without_pad = (size_t)usage_map_size + sizeof(partition_header) + sizeof(entry_pointer);
+	size_t without_pad = (size_t)(blk_count >> 3) + sizeof(partition_header) + sizeof(entry_pointer);
 	size_t rem = without_pad & (SECTOR_SIZE - 1);
 	return without_pad + (rem ? SECTOR_SIZE - rem : 0);
 }
@@ -618,7 +618,7 @@ dfs_err init_empty_partition(const char *device, size_t blk_count)
 
 	//Write header
 	partition_header header = { .magic_number = MAGIC_NUMBER,
-		.usage_map_size = blk_count >> 3 };
+		.block_count = blk_count };
 
 	size_t written = write(file, &header, sizeof(partition_header));
 	ERR_IF_CLEANUP(written != sizeof(partition_header),
@@ -630,7 +630,8 @@ dfs_err init_empty_partition(const char *device, size_t blk_count)
 	ERR_IF_CLEANUP(written != 512 - sizeof(partition_header),
 		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
 
-	for (size_t i = 1; i < (blk_count >> 12); i++)
+	//REVIEW: Well... The condition...
+	for (size_t i = 1; (i >> 15) + (512 - sizeof(partition_header)) << 3 < (blk_count - (sizeof(partition_header) << 3)); i++)
 	{
 		written = write(file, zeros, 512);
 		ERR_IF_CLEANUP(written != 512,
@@ -646,7 +647,7 @@ dfs_err init_empty_partition(const char *device, size_t blk_count)
 
 	//Set root entry_pointer
 	entry_pointer root_pointer = { .first_blk = 0, .last_blk = 0, .flags = ENTRY_FLAG_DIR, .resvd = 0, .name = {0} };
-	lseek(file, determine_first_blk_addr(header.usage_map_size) - sizeof(entry_pointer), SEEK_SET);
+	lseek(file, determine_first_blk_addr(header.block_count) - sizeof(entry_pointer), SEEK_SET);
 	written = write(file, &root_pointer, sizeof(root_pointer));
 	ERR_IF_CLEANUP(written != sizeof(root_pointer),
 		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
@@ -672,9 +673,6 @@ dfs_err validate_partition_header(const dfs_partition* pt)
 	//Check reserved
 	ERR_IF(buff.resvd != 0, DFS_CORRUPTED_PARTITION, "Partition has reserved flags set.\n");
 
-	//Check blk_count will not overflow
-	ERR_IF(buff.usage_map_size> (~0u >> 3), DFS_CORRUPTED_PARTITION, "Partition usage_map_size is too big.\n");
-
 	return DFS_SUCCESS;
 }
 
@@ -699,7 +697,7 @@ dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file)
 		{
 			if (cur_header.next_blk)
 			{
-				//FIXME: Might not be needed, if next_blk is set then all space should be in use
+				//REVIEW: Might not be needed, if next_blk is set then all space should be in use
 				//Update used space if neeed
 				if (cur_header.used_space < BLOCK_DATA_SIZE)
 				{

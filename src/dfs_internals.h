@@ -33,7 +33,7 @@ dfs_err force_allocate_space(const char *device, size_t size);
 #pragma endregion
 
 #pragma region Code naming
-size_t determine_first_blk_addr(uint32_t usage_map_size);
+size_t determine_first_blk_addr(uint32_t blk_count);
 size_t determine_size_from_blk_count(size_t blk_count);
 size_t determine_blk_count(size_t maxSize, size_t *partition_size);
 dfs_err init_empty_partition(const char *device, size_t blk_count);
