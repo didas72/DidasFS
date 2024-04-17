@@ -308,11 +308,46 @@ dfs_err dfs_fget_pos(dfs_partition *pt, const int descriptor, size_t *pos)
 }
 
 dfs_err dfs_dlist_entries(dfs_partition *pt, const char *path, size_t capacity, dfs_entry *entries, size_t *count)
-{return DFS_NOT_IMPLEMENTED;
+{
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(path, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(path));
 
-	
+	ERR_IF(dfs_path_is_empty(path), DFS_NVAL_PATH, ERR_MSG_EMPTY_PATH("list contents of"));
+
+	entry_pointer ptr;
+	dfs_err err;
+	ERR_NZERO((err = find_entry_ptr(pt, path, &ptr, NULL)), err, "Could not find entry for directory '%s'.\n", path);
+	ERR_IF(!(ptr.flags & ENTRY_FLAG_DIR), DFS_NVAL_PATH, "Can only list entries of a directory (a file was provided).\n");
+
+	size_t entries_found = 0, head = 0;
+	block_header cur_blk;
+	blk_idx_t blk_idx = ptr.first_blk;
+	entry_pointer cur_entry;
+	while (blk_idx)
+	{
+		device_read_at_blk(blk_idx, &cur_blk, sizeof(block_header), pt); //TODO: Error checking
+
+		size_t entries_in_blk = cur_blk.used_space / sizeof(entry_pointer);
+		
+		for (size_t i = 0; i < entries_in_blk && head < capacity; i++, head++)
+		{
+			device_read_at(blk_off_to_addr(pt, blk_idx,
+				sizeof(block_header) + i * sizeof(entry_pointer)),
+				&cur_entry, sizeof(entry_pointer), pt);
+
+			entries[head].dir = cur_entry.flags & ENTRY_FLAG_DIR;
+			err = determine_file_size(pt, cur_entry, &entries[head].length);
+			memcpy(entries[head].name, &cur_entry.name, MAX_PATH_NAME);
+		}
+
+		entries_found += entries_in_blk;
+		blk_idx = cur_blk.next_blk;
+	}
+
+	if (count)
+		*count = entries_found;
+
+	return DFS_SUCCESS;
 }
 #pragma endregion
 

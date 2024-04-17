@@ -14,10 +14,10 @@ OUTBIN=$(BIN)/libdfs.a
 TESTBIN=$(BIN)/tester
 
 SRCS=$(shell find $(SRC) -type f -name '*.c')
-OBJS=$(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SRCS))
+OBJS=$(patsubst $(SRC)/%.c,$(OBJ)/%.o,$(SRCS))
 
 TSRCS=$(wildcard $(TEST)/*.c)
-TOBJS=$(patsubst $(TEST)/%.c, $(OBJ)/tests/%.o, $(TSRCS))
+TOBJS=$(patsubst $(TEST)/%.c,$(OBJ)/tests/%.o,$(TSRCS))
 
 
 .PHONY: all build build-tests test debug memleak release loc doc clean-all clean clean-tests clean-doc
@@ -48,7 +48,7 @@ test: $(TESTBIN) clean-tests
 
 $(TESTBIN): $(TOBJS) $(OUTBIN)
 	@mkdir -p $(@D)
-	$(CC) $(C_FLAGS) $^ -o $@ -ldfs -L build/bin
+	$(CC) $(C_FLAGS) $(TOBJS) -o $@ -ldfs -Lbuild/bin
 
 $(OBJ)/tests/%.o: $(TEST)/%.c
 	@mkdir -p $(@D)

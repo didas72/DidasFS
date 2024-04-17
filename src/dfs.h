@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "paths.c"
+#include "paths.h"
 
 
 //===Types===
@@ -203,8 +203,8 @@ dfs_err dfs_fget_pos(dfs_partition *pt, const int descriptor, size_t *pos);
  * @param pt Pointer to a partition handle to be used
  * @param path Path of the directory whose contents should be listed
  * @param capacity Maximum number of entries that may be stored in entries
- * @param entries Pointer to an array to store the found entries
- * @param count Used to return the nunmber of entries stored
+ * @param entries Pointer to an array to store the found entries. Can be set to NULL, if capacity is zero
+ * @param count Used to return the nunmber of entries available
 */
 dfs_err dfs_dlist_entries(dfs_partition *pt, const char *path, size_t capacity, dfs_entry *entries, size_t *count);
 #endif
