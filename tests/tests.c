@@ -583,6 +583,10 @@ MU_TEST(list_entries)
 	mu_assert_int_eq(DFS_SUCCESS, err);
 	mu_assert_int_eq(0, count);
 
+	err = dfs_dlist_entries(pt, "", 0, NULL, &count);
+	mu_assert_int_eq(DFS_SUCCESS, err);
+	mu_assert_int_eq(0, count);
+
 	dfs_pclose(pt);
 }
 

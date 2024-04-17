@@ -602,6 +602,8 @@ return_value:
 	if (partition_size)
 		*partition_size = determine_size_from_blk_count(current);
 
+	//FIXME: Returned value is not multiple of 8, breaks partition header
+
 	return current;
 }
 
@@ -619,13 +621,34 @@ dfs_err init_empty_partition(const char *device, size_t blk_count)
 		.usage_map_size = blk_count >> 3 };
 
 	size_t written = write(file, &header, sizeof(partition_header));
-
 	ERR_IF_CLEANUP(written != sizeof(partition_header),
 		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
 
+	//Clear block map
+	char zeros[512] = { 0 };
+	written = write(file, zeros, 512 - sizeof(partition_header));
+	ERR_IF_CLEANUP(written != 512 - sizeof(partition_header),
+		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
+
+	for (size_t i = 1; i < (blk_count >> 12); i++)
+	{
+		written = write(file, zeros, 512);
+		ERR_IF_CLEANUP(written != 512,
+			DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
+	}
+
+	//Set root to used
 	char root_used = 1;
+	lseek(file, sizeof(partition_header), SEEK_SET);
 	written = write(file, &root_used, 1);
 	ERR_IF_CLEANUP(written != 1,
+		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
+
+	//Set root entry_pointer
+	entry_pointer root_pointer = { .first_blk = 0, .last_blk = 0, .flags = ENTRY_FLAG_DIR, .resvd = 0, .name = {0} };
+	lseek(file, determine_first_blk_addr(header.usage_map_size) - sizeof(entry_pointer), SEEK_SET);
+	written = write(file, &root_pointer, sizeof(root_pointer));
+	ERR_IF_CLEANUP(written != sizeof(root_pointer),
 		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
 
 	close(file);
@@ -1056,6 +1079,7 @@ dfs_err handle_can_open(dfs_partition *pt, const char *path, const dfs_filem_fla
 	*can_open = compatible;
 	return DFS_SUCCESS;
 }
+
 dfs_err handle_get(dfs_partition *pt, const int descriptor, dfs_file **file)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
@@ -1067,6 +1091,7 @@ dfs_err handle_get(dfs_partition *pt, const int descriptor, dfs_file **file)
 	*file = &pt->open_handles[descriptor];
 	return DFS_SUCCESS;
 }
+
 bool handle_open_flags_compatible(const dfs_filem_flags new, const dfs_filem_flags open)
 {
 	if ((new & DFS_FILEM_READ) && !(open & DFS_FILEM_SHARE_READ))
