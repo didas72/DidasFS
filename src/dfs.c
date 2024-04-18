@@ -630,8 +630,7 @@ dfs_err init_empty_partition(const char *device, size_t blk_count)
 	ERR_IF_CLEANUP(written != 512 - sizeof(partition_header),
 		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
 
-	//REVIEW: Well... The condition...
-	for (size_t i = 1; (i >> 15) + (512 - sizeof(partition_header)) << 3 < (blk_count - (sizeof(partition_header) << 3)); i++)
+	for (size_t i = 1; ((512 - sizeof(partition_header)) << 3) + (i << 12) < blk_count; i++)
 	{
 		written = write(file, zeros, 512);
 		ERR_IF_CLEANUP(written != 512,
