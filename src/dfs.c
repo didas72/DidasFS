@@ -998,7 +998,7 @@ dfs_err create_object(dfs_partition *pt, const char *path, const uint16_t flags)
 	entry_pointer parent;
 	readc = device_read_at_entry_loc(parent_loc, &parent, pt);
 	ERR_IF(readc != sizeof(entry_pointer), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
-	ERR_NZERO(parent.flags & ENTRY_FLAG_DIR, DFS_NVAL_PATH, "Cannot create object inside a file.");
+	ERR_IF(!(parent.flags & ENTRY_FLAG_DIR), DFS_NVAL_PATH, "Cannot create object inside a file.\n");
 
 	//Find and reserve free block
 	ERR_NZERO((err = find_free_blk(pt, &new_blk_idx)), err, "Could not find free block.\n");
