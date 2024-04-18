@@ -279,6 +279,7 @@ MU_TEST_SUITE(dfs_directories_errors)
 	MU_RUN_TEST(null_args_directories_errors);
 	MU_RUN_TEST(duplicated_directories_errors);
 	MU_RUN_TEST(empty_name_directories_errors);
+	//TODO: Test creation of objects inside files (already fixed)
 }
 #pragma endregion
 
