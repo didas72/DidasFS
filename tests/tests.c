@@ -579,11 +579,37 @@ MU_TEST(list_entries)
 	dfs_entry entries[16] = { 0 };
 	dfs_popen(device, &pt);
 	
+	err = dfs_dlist_entries(pt, "", 0, NULL, &count);
+	mu_assert_int_eq(DFS_SUCCESS, err);
+	mu_assert_int_eq(0, count);
+
 	err = dfs_dlist_entries(pt, "", 16, entries, &count);
 	mu_assert_int_eq(DFS_SUCCESS, err);
 	mu_assert_int_eq(0, count);
 
+	dfs_fcreate(pt, "file1.test");
+	dfs_dcreate(pt, "dir1");
+
 	err = dfs_dlist_entries(pt, "", 0, NULL, &count);
+	mu_assert_int_eq(DFS_SUCCESS, err);
+	mu_assert_int_eq(2, count);
+
+	err = dfs_dlist_entries(pt, "", 16, entries, &count);
+	mu_assert_int_eq(DFS_SUCCESS, err);
+	mu_assert_int_eq(2, count);
+	//Ordering is not required
+	mu_assert_int_eq(false, entries[0].dir);
+	mu_assert_int_eq(0, entries[0].length);
+	mu_assert_string_eq("file1.test", entries[0].name);
+	mu_assert_int_eq(true, entries[1].dir);
+	mu_assert_int_eq(0, entries[1].length);
+	mu_assert_string_eq("dir1", entries[1].name);
+
+	err = dfs_dlist_entries(pt, "dir1", 0, NULL, &count);
+	mu_assert_int_eq(DFS_SUCCESS, err);
+	mu_assert_int_eq(0, count);
+
+	err = dfs_dlist_entries(pt, "dir1", 16, entries, &count);
 	mu_assert_int_eq(DFS_SUCCESS, err);
 	mu_assert_int_eq(0, count);
 
@@ -602,6 +628,30 @@ MU_TEST_SUITE(dfs_management_good)
 #pragma endregion
 
 #pragma region Management function errors
+MU_TEST(list_entries_errors)
+{
+	fprintf(stderr, "\nEntering %s\n\n", __func__);
+
+	dfs_err err;
+	dfs_partition *pt;
+	char *device = "./test_management_errors.hex";
+
+	size_t count;
+	dfs_entry entries[16] = { 0 };
+	dfs_popen(device, &pt);
+
+	err = dfs_dlist_entries(NULL, "", 16, entries, &count);
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_list_entries accepted a NULL partition.");
+
+	err = dfs_dlist_entries(pt, NULL, 16, entries, &count);
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_dlist_entries accepted a NULL path.");
+
+	err = dfs_dlist_entries(pt, "", 16, NULL, &count);
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_dlist_entries accepted a NULL entries pointer with a non zero capacity.");
+
+	dfs_pclose(pt);
+}
+
 MU_TEST_SUITE(dfs_management_errors)
 {
 	size_t avail_size = 1 << 20; //1M
@@ -609,7 +659,7 @@ MU_TEST_SUITE(dfs_management_errors)
 
 	dfs_pcreate(device, avail_size);
 
-	//TODO: Add tests
+	MU_RUN_TEST(list_entries_errors);
 }
 #pragma endregion
 

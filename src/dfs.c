@@ -33,6 +33,7 @@ void dfs_set_log_level(int level)
 
 dfs_err dfs_pcreate(const char *device, size_t total_size)
 {
+	//FIXME: Allows creation of >max size (cannot allow block_count to be 0xFFFFFFFF)
 	ERR_NULL(device, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(device));
 	ERR_IF(total_size == 0, DFS_NVAL_ARGS, "Argument 'total_size' cannot be 0.\n");
 
@@ -311,9 +312,9 @@ dfs_err dfs_dlist_entries(dfs_partition *pt, const char *path, size_t capacity, 
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(path, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(path));
+	ERR_IF(!entries && capacity, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(entries));
 
-	//ERR_IF(dfs_path_is_empty(path), DFS_NVAL_PATH, ERR_MSG_EMPTY_PATH("list contents of"));
-
+	ssize_t readc;
 	entry_pointer ptr;
 	dfs_err err;
 	ERR_NZERO((err = find_entry_ptr(pt, path, &ptr, NULL)), err, "Could not find entry for directory '%s'.\n", path);
@@ -323,16 +324,17 @@ dfs_err dfs_dlist_entries(dfs_partition *pt, const char *path, size_t capacity, 
 	block_header cur_blk;
 	blk_idx_t blk_idx = ptr.first_blk;
 	entry_pointer cur_entry;
-	while (blk_idx)
+	do //If first is 0 then root block was used. All entries are given a non-zero blk_idx at creation time
 	{
-		device_read_at_blk(blk_idx, &cur_blk, sizeof(block_header), pt); //TODO: Error checking
+		readc = device_read_at_blk(blk_idx, &cur_blk, sizeof(block_header), pt); //TODO: Error checking
+		ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
 		size_t entries_in_blk = cur_blk.used_space / sizeof(entry_pointer);
 		
 		for (size_t i = 0; i < entries_in_blk && head < capacity; i++, head++)
 		{
-			device_read_at(blk_off_to_addr(pt, blk_idx,
-				sizeof(block_header) + i * sizeof(entry_pointer)),
+			device_read_at(
+				blk_off_to_addr(pt, blk_idx, i * sizeof(entry_pointer)),
 				&cur_entry, sizeof(entry_pointer), pt);
 
 			entries[head].dir = cur_entry.flags & ENTRY_FLAG_DIR;
@@ -342,7 +344,7 @@ dfs_err dfs_dlist_entries(dfs_partition *pt, const char *path, size_t capacity, 
 
 		entries_found += entries_in_blk;
 		blk_idx = cur_blk.next_blk;
-	}
+	} while (blk_idx);
 
 	if (count)
 		*count = entries_found;
@@ -646,6 +648,7 @@ dfs_err init_empty_partition(const char *device, size_t blk_count)
 
 	//Set root entry_pointer
 	entry_pointer root_pointer = { .first_blk = 0, .last_blk = 0, .flags = ENTRY_FLAG_DIR, .resvd = 0, .name = {0} };
+	memcpy(root_pointer.name, "FSRoot!PlsNoTouchy:)", MAX_PATH_NAME);
 	lseek(file, determine_first_blk_addr(header.block_count) - sizeof(entry_pointer), SEEK_SET);
 	written = write(file, &root_pointer, sizeof(root_pointer));
 	ERR_IF_CLEANUP(written != sizeof(root_pointer),
