@@ -369,7 +369,7 @@ int get_lowest_unused_descriptor(const dfs_partition pt)
 	return -1;
 }
 
-dfs_err load_blk_map(dfs_partition* host)
+static dfs_err load_blk_map(dfs_partition* host)
 {
 	ERR_NULL(host, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(host));
 
@@ -391,7 +391,7 @@ dfs_err load_blk_map(dfs_partition* host)
 	return DFS_SUCCESS;
 }
 
-dfs_err get_blk_used(const dfs_partition *pt, blk_idx_t blk_idx, bool *used)
+static dfs_err get_blk_used(const dfs_partition *pt, blk_idx_t blk_idx, bool *used)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(used, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(used));
@@ -405,7 +405,7 @@ dfs_err get_blk_used(const dfs_partition *pt, blk_idx_t blk_idx, bool *used)
 	return DFS_SUCCESS;
 }
 
-dfs_err set_blk_used(const dfs_partition *pt, blk_idx_t blk_idx, bool used)
+static dfs_err set_blk_used(const dfs_partition *pt, blk_idx_t blk_idx, bool used)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_IF(blk_idx >= pt->blk_count, DFS_NVAL_ARGS, "Argument 'blk_idx' must be smaller than total block count.\n");
@@ -421,7 +421,7 @@ dfs_err set_blk_used(const dfs_partition *pt, blk_idx_t blk_idx, bool used)
 	return DFS_SUCCESS;
 }
 
-dfs_err flush_full_blk_map(const dfs_partition *pt)
+static dfs_err flush_full_blk_map(const dfs_partition *pt)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
@@ -433,7 +433,7 @@ dfs_err flush_full_blk_map(const dfs_partition *pt)
 	return DFS_SUCCESS;
 }
 
-dfs_err destroy_blk_map(dfs_partition *pt)
+static dfs_err destroy_blk_map(dfs_partition *pt)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
@@ -441,18 +441,6 @@ dfs_err destroy_blk_map(dfs_partition *pt)
 	free(pt->usage_map);
 
 	return DFS_SUCCESS;
-}
-
-int file_descriptor_hasher(const void *descriptor)
-{
-	return *((int*)descriptor);
-}
-
-void dfs_file_deallocator(void *file)
-{
-	dfs_file *fs = (dfs_file*)file;
-
-	free(fs);
 }
 #pragma endregion
 
@@ -510,7 +498,7 @@ inline ssize_t device_read_at_entry_loc(const entry_ptr_loc entry_loc, void *buf
 	return device_read(buffer, sizeof(entry_pointer), partition);
 }
 
-dfs_err force_allocate_space(const char *device, size_t size)
+static dfs_err force_allocate_space(const char *device, size_t size)
 {
 	ERR_NULL(device, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(device));
 	ERR_IF(size == 0, DFS_NVAL_ARGS, "Argument 'size' must not be 0.\n");
@@ -529,17 +517,17 @@ dfs_err force_allocate_space(const char *device, size_t size)
 }
 #pragma endregion
 #pragma region Block-Address abstraction
-size_t blk_idx_to_addr(const dfs_partition *partition, const blk_idx_t index)
+static size_t blk_idx_to_addr(const dfs_partition *partition, const blk_idx_t index)
 {
 	return partition->root_blk_addr + (size_t)index * BLOCK_SIZE;
 }
 
-size_t blk_off_to_addr(const dfs_partition *partition, const blk_idx_t index, const size_t offset)
+static size_t blk_off_to_addr(const dfs_partition *partition, const blk_idx_t index, const size_t offset)
 {
 	return blk_idx_to_addr(partition, index) + sizeof(block_header) + offset;
 }
 
-size_t entry_loc_to_addr(const dfs_partition *partition, const entry_ptr_loc entry_loc)
+static size_t entry_loc_to_addr(const dfs_partition *partition, const entry_ptr_loc entry_loc)
 {
 	if (entry_loc.blk_idx == ~0u && entry_loc.entry_idx == ~0u)
 		return partition->root_blk_addr - sizeof(entry_pointer);
@@ -550,28 +538,28 @@ size_t entry_loc_to_addr(const dfs_partition *partition, const entry_ptr_loc ent
 	return base_address + offset;
 }
 
-entry_ptr_loc get_root_loc()
+static entry_ptr_loc get_root_loc()
 {
 	entry_ptr_loc loc = { .blk_idx = ~0u, .entry_idx = ~0u };
 	return loc;
 }
 #pragma endregion
 #pragma region Code naming
-size_t determine_first_blk_addr(uint32_t blk_count)
+static size_t determine_first_blk_addr(uint32_t blk_count)
 {
 	size_t without_pad = (size_t)(blk_count >> 3) + sizeof(partition_header) + sizeof(entry_pointer);
 	size_t rem = without_pad & (SECTOR_SIZE - 1);
 	return without_pad + (rem ? SECTOR_SIZE - rem : 0);
 }
 
-size_t determine_size_from_blk_count(size_t blk_count)
+static size_t determine_size_from_blk_count(size_t blk_count)
 {
 	size_t usage_map_size = blk_count >> 3;
 	size_t dts = determine_first_blk_addr(usage_map_size);
 	return dts + blk_count * BLOCK_SIZE;
 }
 
-size_t determine_blk_count(size_t maxSize, size_t *partition_size)
+static size_t determine_blk_count(size_t maxSize, size_t *partition_size)
 {
 	size_t max = MAX_BLKS, min = 0;
 	size_t current = 0, total_size = 0;
@@ -609,7 +597,7 @@ return_value:
 	return current;
 }
 
-dfs_err init_empty_partition(const char *device, size_t blk_count)
+static dfs_err init_empty_partition(const char *device, size_t blk_count)
 {
 	ERR_NULL(device, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(device));
 	ERR_IF(blk_count == 0, DFS_NVAL_ARGS, "Argument 'blk_count' must not be 0.\n");
@@ -665,7 +653,7 @@ dfs_err init_empty_partition(const char *device, size_t blk_count)
 	return DFS_SUCCESS;
 }
 
-dfs_err validate_partition_header(const dfs_partition* pt)
+static dfs_err validate_partition_header(const dfs_partition* pt)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
@@ -684,7 +672,7 @@ dfs_err validate_partition_header(const dfs_partition* pt)
 	return DFS_SUCCESS;
 }
 
-dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file)
+static dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file)
 { //TODO: Maybe break down into smaller functions
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(file, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(file));
@@ -748,7 +736,7 @@ dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file)
 }
 #pragma endregion
 #pragma region Block navigation
-dfs_err find_entry_ptr(const dfs_partition *pt, const char *path, entry_pointer *entry, entry_ptr_loc *entry_loc)
+static dfs_err find_entry_ptr(const dfs_partition *pt, const char *path, entry_pointer *entry, entry_ptr_loc *entry_loc)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(path, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(path));
@@ -774,7 +762,7 @@ dfs_err find_entry_ptr(const dfs_partition *pt, const char *path, entry_pointer 
 	return find_entry_ptr_recursion(pt, 0, path, entry, entry_loc);
 }
 
-dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t cur_blk, const char *path, entry_pointer *entry, entry_ptr_loc *entry_loc)
+static dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t cur_blk, const char *path, entry_pointer *entry, entry_ptr_loc *entry_loc)
 { //TODO: Maybe break down into smaller functions
 	char root[MAX_PATH_NAME + 1];
 	char tail[MAX_PATH + 1];
@@ -844,7 +832,7 @@ dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t cur_bl
 	}
 }
 
-dfs_err find_free_blk(const dfs_partition *pt, blk_idx_t *index)
+static dfs_err find_free_blk(const dfs_partition *pt, blk_idx_t *index)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(index, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(index));
@@ -869,7 +857,7 @@ dfs_err find_free_blk(const dfs_partition *pt, blk_idx_t *index)
 }
 #pragma endregion
 #pragma region Block manipulation
-dfs_err append_blk_to_file(const dfs_partition *pt, const entry_ptr_loc entry_loc, blk_idx_t *new_idx)
+static dfs_err append_blk_to_file(const dfs_partition *pt, const entry_ptr_loc entry_loc, blk_idx_t *new_idx)
 { //TODO: Maybe break down into smaller functions
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
@@ -923,7 +911,7 @@ dfs_err append_blk_to_file(const dfs_partition *pt, const entry_ptr_loc entry_lo
 	return DFS_SUCCESS;
 }
 
-dfs_err append_entry_to_dir(const dfs_partition *pt, const entry_ptr_loc dir_entryLoc, entry_pointer new_entry)
+static dfs_err append_entry_to_dir(const dfs_partition *pt, const entry_ptr_loc dir_entryLoc, entry_pointer new_entry)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
@@ -968,7 +956,7 @@ dfs_err append_entry_to_dir(const dfs_partition *pt, const entry_ptr_loc dir_ent
 }
 #pragma endregion
 #pragma region File manipulation
-dfs_err create_object(dfs_partition *pt, const char *path, const uint16_t flags)
+static dfs_err create_object(dfs_partition *pt, const char *path, const uint16_t flags)
 { //TODO: Maybe break down into smaller functions
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(path, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(path));
@@ -1029,7 +1017,7 @@ dfs_err create_object(dfs_partition *pt, const char *path, const uint16_t flags)
 	return DFS_SUCCESS;
 }
 
-dfs_err determine_file_size(dfs_partition *pt, const entry_pointer entry, size_t *size)
+static dfs_err determine_file_size(dfs_partition *pt, const entry_pointer entry, size_t *size)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(size, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(size));
@@ -1053,18 +1041,18 @@ dfs_err determine_file_size(dfs_partition *pt, const entry_pointer entry, size_t
 	return DFS_SUCCESS;
 }
 
-bool object_is_file(entry_pointer entry)
+static bool object_is_file(entry_pointer entry)
 {
 	return !(entry.flags & ENTRY_FLAG_DIR);
 }
 
-bool object_is_writable(entry_pointer entry)
+static bool object_is_writable(entry_pointer entry)
 {
 	return !(entry.flags & ENTRY_FLAG_READONLY);
 }
 #pragma endregion
 #pragma region File handles
-dfs_err handle_can_open(dfs_partition *pt, const char *path, const dfs_filem_flags flags, bool *can_open)
+static dfs_err handle_can_open(dfs_partition *pt, const char *path, const dfs_filem_flags flags, bool *can_open)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(path, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(path));
@@ -1092,7 +1080,7 @@ dfs_err handle_can_open(dfs_partition *pt, const char *path, const dfs_filem_fla
 	return DFS_SUCCESS;
 }
 
-dfs_err handle_get(dfs_partition *pt, const int descriptor, dfs_file **file)
+static dfs_err handle_get(dfs_partition *pt, const int descriptor, dfs_file **file)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(file, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(file));
@@ -1104,7 +1092,7 @@ dfs_err handle_get(dfs_partition *pt, const int descriptor, dfs_file **file)
 	return DFS_SUCCESS;
 }
 
-bool handle_open_flags_compatible(const dfs_filem_flags new, const dfs_filem_flags open)
+static bool handle_open_flags_compatible(const dfs_filem_flags new, const dfs_filem_flags open)
 {
 	if ((new & DFS_FILEM_READ) && !(open & DFS_FILEM_SHARE_READ))
 		return false;
