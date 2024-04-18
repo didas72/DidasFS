@@ -621,7 +621,6 @@ dfs_err init_empty_partition(const char *device, size_t blk_count)
 	//Write header
 	partition_header header = { .magic_number = MAGIC_NUMBER,
 		.block_count = blk_count };
-
 	size_t written = write(file, &header, sizeof(partition_header));
 	ERR_IF_CLEANUP(written != sizeof(partition_header),
 		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
@@ -651,7 +650,14 @@ dfs_err init_empty_partition(const char *device, size_t blk_count)
 	memcpy(root_pointer.name, "FSRoot!PlsNoTouchy:)", MAX_PATH_NAME);
 	lseek(file, determine_first_blk_addr(header.block_count) - sizeof(entry_pointer), SEEK_SET);
 	written = write(file, &root_pointer, sizeof(root_pointer));
-	ERR_IF_CLEANUP(written != sizeof(root_pointer),
+	ERR_IF_CLEANUP(written != sizeof(entry_pointer),
+		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
+
+	//Init root block header
+	block_header root_header = { 0 };
+	//Seeker should be at root block already
+	written = write(file, &root_header, sizeof(block_header));
+	ERR_IF_CLEANUP(written != sizeof(block_header),
 		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
 
 	close(file);
