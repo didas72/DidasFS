@@ -235,32 +235,33 @@ dfs_err dfs_fread(dfs_partition *pt, const int descriptor, const void *buffer, c
 	ERR_NULL(buffer, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(buffer));
 	ERR_IF(len == 0, DFS_NVAL_ARGS, "Argument 'len' must not be 0.\n");
 
-	size_t buffer_head = 0, readB;
+	size_t buffer_head = 0, readc;
 	block_header cur_blk;
 	dfs_err err;
 	dfs_file *file;
 	ERR_IF((err = handle_get(pt, descriptor, &file)), err, ERR_MSG_HANDLE_FETCH_FAIL(descriptor));
 
+	//FIXME: Reads even if head is at file end
 	while (buffer_head < len)
 	{
 		//Read cur block
-		readB = device_read_at_blk(file->cur_blk_idx, &cur_blk, sizeof(block_header), pt);
-		ERR_IF(readB != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
+		readc = device_read_at_blk(file->cur_blk_idx, &cur_blk, sizeof(block_header), pt);
+		ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
 		//Calculate metrics
-		size_t blockOffset = file->head % BLOCK_DATA_SIZE;
-		size_t dataAddr = blk_off_to_addr(pt, file->cur_blk_idx, blockOffset);
-		size_t maxRead = BLOCK_DATA_SIZE - blockOffset;
-		size_t pendingRead = len - buffer_head;
-		size_t cur_blkRead = (maxRead < pendingRead) ? maxRead : pendingRead;
+		size_t block_offset = file->head % BLOCK_DATA_SIZE;
+		size_t data_addr = blk_off_to_addr(pt, file->cur_blk_idx, block_offset);
+		size_t max_read = cur_blk.used_space - block_offset;
+		size_t pending_read = len - buffer_head;
+		size_t cur_blk_read = (max_read < pending_read) ? max_read : pending_read;
 		
 		//Read data
-		readB = device_read_at(dataAddr, &((char*)buffer)[buffer_head], cur_blkRead, pt);
-		ERR_NZERO(readB != cur_blkRead, DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
+		readc = device_read_at(data_addr, &((char*)buffer)[buffer_head], cur_blk_read, pt);
+		ERR_NZERO(readc != cur_blk_read, DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 	
 		//Update head
-		buffer_head += cur_blkRead;
-		file->head += cur_blkRead;
+		buffer_head += cur_blk_read;
+		file->head += cur_blk_read;
 
 		//Advance to next block if needed
 		if (buffer_head < len)
