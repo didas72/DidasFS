@@ -13,7 +13,6 @@ ADD FEATURE:
 * rmdir/rm
 * **Ensure to check dir block used_size when removing objects, might break dlist_entries and searching**
 * cp/mv
-* access
 * fsync (flush) \[once buffering is implemented\]
 * Check total free space (statvfs?)
 
