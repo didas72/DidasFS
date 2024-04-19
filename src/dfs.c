@@ -241,7 +241,6 @@ dfs_err dfs_fread(dfs_partition *pt, const int descriptor, const void *buffer, c
 	dfs_file *file;
 	ERR_IF((err = handle_get(pt, descriptor, &file)), err, ERR_MSG_HANDLE_FETCH_FAIL(descriptor));
 
-	//FIXME: Reads even if head is at file end
 	while (buffer_head < len)
 	{
 		//Read cur block
@@ -250,10 +249,12 @@ dfs_err dfs_fread(dfs_partition *pt, const int descriptor, const void *buffer, c
 
 		//Calculate metrics
 		size_t block_offset = file->head % BLOCK_DATA_SIZE;
-		size_t data_addr = blk_off_to_addr(pt, file->cur_blk_idx, block_offset);
+		if (cur_blk.used_space < block_offset)
+			break;
 		size_t max_read = cur_blk.used_space - block_offset;
 		size_t pending_read = len - buffer_head;
 		size_t cur_blk_read = (max_read < pending_read) ? max_read : pending_read;
+		size_t data_addr = blk_off_to_addr(pt, file->cur_blk_idx, block_offset);
 		
 		//Read data
 		readc = device_read_at(data_addr, &((char*)buffer)[buffer_head], cur_blk_read, pt);
@@ -270,11 +271,7 @@ dfs_err dfs_fread(dfs_partition *pt, const int descriptor, const void *buffer, c
 
 			//Return early if file ended
 			if (!file->cur_blk_idx)
-			{
-				if (read)
-					*read = buffer_head;
-				return DFS_SUCCESS;
-			}
+				break;
 		}
 	}
 
