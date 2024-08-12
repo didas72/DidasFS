@@ -177,7 +177,7 @@ dfs_err dfs_fwrite(dfs_partition *pt, const int descriptor, const void *buffer, 
  * @param written Referenced variable will be set to the actual number of bytes read
  * @return int containing the error code for the operation
  */
-dfs_err dfs_fread(dfs_partition *pt, const int descriptor, const void *buffer, const size_t len, size_t *read);
+dfs_err dfs_fread(dfs_partition *pt, const int descriptor, void *buffer, const size_t len, size_t *read);
 /**
  * @brief Sets the stream position
  * 

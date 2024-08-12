@@ -48,7 +48,7 @@ static dfs_err find_free_blk(const dfs_partition *pt, blk_idx_t *index);
 #pragma endregion
 
 #pragma region Block manipulation
-static dfs_err append_blk_to_file(const dfs_partition *pt, const entry_ptr_loc entry_loc, blk_idx_t *new_blk_idx);
+static dfs_err append_blk_to_file(const dfs_partition *pt, const entry_ptr_loc entry_loc, blk_idx_t *new_blk_idx, dfs_file *handle);
 static dfs_err append_entry_to_dir(const dfs_partition *pt, const entry_ptr_loc dir_entryLoc, entry_pointer new_entry);
 #pragma endregion
 

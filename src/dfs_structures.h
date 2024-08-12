@@ -58,7 +58,7 @@ typedef struct
 
 	//Positioning
 	size_t head;
-	blk_idx_t cur_blk_idx, first_blk_idx;
+	blk_idx_t cur_blk_idx, first_blk_idx, last_blk_idx;
 	entry_ptr_loc entry_loc;
 } dfs_file;
 

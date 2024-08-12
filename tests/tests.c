@@ -420,6 +420,64 @@ MU_TEST(seek_file)
 	dfs_pclose(pt);
 }
 
+MU_TEST(read_write_align_file)
+{
+	fprintf(stderr, "\nEntering %s\n\n", __func__);
+
+	dfs_err err;
+	dfs_partition *pt;
+	char *device = "./test_files_good.hex";
+	char *data = malloc(BLOCK_DATA_SIZE);
+	memset(data, 0xFF, BLOCK_DATA_SIZE);
+
+	int fd;
+	size_t io;
+	dfs_popen(device, &pt);
+	dfs_fcreate(pt, "read_write_align.file");
+	dfs_fopen(pt, "read_write_align.file", DFS_FILEM_WRITE, &fd);
+
+	//TODO: Update write tests when reimplementing fwrite
+	err = dfs_fwrite(pt, fd, data, BLOCK_DATA_SIZE, &io);
+	mu_assert_int_eq(DFS_SUCCESS, err);
+	mu_assert_int_eq(BLOCK_DATA_SIZE, io);
+
+	dfs_fclose(pt, fd);
+	dfs_fopen(pt, "read_write_align.file", DFS_FILEM_RDWR, &fd);
+
+	err = dfs_fread(pt, fd, data, BLOCK_DATA_SIZE, &io);
+	mu_assert_int_eq(DFS_SUCCESS, err);
+	mu_assert_int_eq(BLOCK_DATA_SIZE, io);
+	for (int i = 0; i < BLOCK_DATA_SIZE; i++) 
+	{
+		if (data[i] != -1)
+		{
+			mu_fail("Read bad data after aligned write.\n");
+			break;
+		}
+	}
+	
+	//Read with cursor aligned on block boundary and at file end
+	err = dfs_fread(pt, fd, data, BLOCK_DATA_SIZE, &io);
+	mu_assert_int_eq(DFS_SUCCESS, err);
+	mu_assert_int_eq(0, io); //If not 0, block alignment is a problem
+
+	//Append another whole block
+	err = dfs_fwrite(pt, fd, data, BLOCK_DATA_SIZE, &io);
+	mu_assert_int_eq(DFS_SUCCESS, err);
+	mu_assert_int_eq(BLOCK_DATA_SIZE, io);
+
+	dfs_fclose(pt, fd);
+	dfs_fopen(pt, "read_write_align.file", DFS_FILEM_READ, &fd);
+	err = dfs_fread(pt, fd, data, BLOCK_DATA_SIZE, &io); //Seek to end of first block
+
+	err = dfs_fread(pt, fd, data, BLOCK_DATA_SIZE, &io);
+	mu_assert_int_eq(DFS_SUCCESS, err);
+	mu_assert_int_eq(BLOCK_DATA_SIZE, io); //If didn't read, block alignment is a problem
+
+	dfs_fclose(pt, fd);
+	free(data);
+}
+
 MU_TEST_SUITE(dfs_files_good)
 {
 	size_t avail_size = 1 << 20; //1M
@@ -431,6 +489,7 @@ MU_TEST_SUITE(dfs_files_good)
 	MU_RUN_TEST(open_close_file);
 	MU_RUN_TEST(read_write_file);
 	MU_RUN_TEST(seek_file);
+	MU_RUN_TEST(read_write_align_file);
 }
 #pragma endregion
 
