@@ -26,6 +26,8 @@ TOBJS=$(patsubst $(TEST)/%.c,$(OBJ)/tests/%.o,$(TSRCS))
 all: $(OUTBIN)
 build: $(OUTBIN)
 build-tests: $(TESTBIN)
+rebuild: clean $(OUTBIN)
+rebuild-tests: clean $(TESTBIN)
 
 release: C_FLAGS=-Wall -Wextra -O2 -Wno-unknown-pragmas
 release: clean
