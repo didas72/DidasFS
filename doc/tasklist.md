@@ -4,6 +4,7 @@ REMINDER: Cleanup TODO in code
 
 FIX:
 
+* File mode used on opening but ignored on read/write
 * Missing error on too long file/dir names
 * Object creation not accepting flags
 
@@ -13,8 +14,8 @@ ADD FEATURE:
 * rmdir/rm
 * **Ensure to check dir block used_size when removing objects, might break dlist_entries and searching**
 * cp/mv
-* fsync (flush) \[once buffering is implemented\]
 * Check total free space (statvfs?)
+* fsync (flush) \[once buffering is implemented\]
 
 ADD FEATURE:
 

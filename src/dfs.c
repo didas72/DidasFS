@@ -162,74 +162,62 @@ dfs_err dfs_fclose(dfs_partition *pt, const int descriptor)
 }
 
 dfs_err dfs_fwrite(dfs_partition *pt, const int descriptor, const void *buffer, const size_t len, size_t *written)
-{ //TODO: Maybe break down into smaller functions
-	//TODO: Rewrite to comply with file cursor convention
+{
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(buffer, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(buffer));
-	ERR_IF(len == 0, DFS_NVAL_ARGS, "Argument 'len' must not be 0.\n");
+	if (len == 0)
+	{
+		if (written)
+			*written = 0;
+		return DFS_SUCCESS;
+	}
 
-	size_t buffer_head = 0;
-	ssize_t readc;
-	block_header cur_blk;
 	dfs_err err;
 	dfs_file *file;
-	handle_get(pt, descriptor, &file);
 	ERR_IF((err = handle_get(pt, descriptor, &file)), err, ERR_MSG_HANDLE_FETCH_FAIL(descriptor));
 
-	if (file->cur_blk_idx == 0) file->cur_blk_idx = file->last_blk_idx;
-	
-	//Should work for both append and overwrite
-	while (buffer_head < len)
+	size_t buff_head = 0;
+	ssize_t readc;
+	block_header cur_blk;
+	blk_idx_t cur_blk_idx = file->cur_blk_idx;
+	size_t left = len - buff_head;
+
+	while (left > 0)
 	{
-		//Read cur block
-		readc = device_read_at_blk(file->cur_blk_idx, &cur_blk, sizeof(block_header), pt);
+		readc = device_read_at_blk(cur_blk_idx, &cur_blk, sizeof(block_header), pt);
 		ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
-		//Calculate metrics
-		size_t block_offset = file->head % BLOCK_DATA_SIZE;
-		size_t data_addr = blk_off_to_addr(pt, file->cur_blk_idx, block_offset);
-		size_t max_write = BLOCK_DATA_SIZE - block_offset;
-		size_t pending_write = len - buffer_head;
-		size_t cur_blk_write = (max_write < pending_write) ? max_write : pending_write;
-		size_t final_new_data_in_blk = block_offset + cur_blk_write;
-		size_t final_data_in_blk = (cur_blk.used_space > final_new_data_in_blk) ? cur_blk.used_space : final_new_data_in_blk;
+		size_t cur_blk_off = file->head % BLOCK_DATA_SIZE;
+		size_t space_ahead = BLOCK_DATA_SIZE - cur_blk_off;
+		size_t to_write = MIN(left, space_ahead);
 
-		if (final_new_data_in_blk > cur_blk.used_space) //If grown
+		size_t addr = blk_off_to_addr(pt, cur_blk_idx, cur_blk_off);
+		readc = device_write_at(addr, &((char*)buffer)[cur_blk_off], to_write, pt);
+		ERR_IF((size_t)readc != to_write, DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
+
+		buff_head += to_write;
+		left -= to_write;
+		file->head += to_write;
+
+		size_t write_end = cur_blk_off + to_write;
+		if (write_end > cur_blk.used_space) //Update used space
 		{
-			//Update cur block
-			cur_blk.used_space = final_data_in_blk;
-
-			//Flush block changes
-			readc = device_write_at_blk(file->cur_blk_idx, &cur_blk, sizeof(block_header), pt);
+			cur_blk.used_space = write_end;
+			readc = device_write_at_blk(cur_blk_idx, &cur_blk, sizeof(block_header), pt);
 			ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
 		}
 
-		//Flush data
-		readc = device_write_at(data_addr, &((char*)buffer)[buffer_head], cur_blk_write, pt);
-		ERR_NZERO(readc != (ssize_t)cur_blk_write, DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
+		if (written)
+			*written = len;
+		cur_blk_idx = cur_blk.next_blk;
 
-		//Update head
-		buffer_head += cur_blk_write;
-		file->head += cur_blk_write;
-
-		//Advance to next block if needed
-		if (buffer_head < len)
+		if (left > 0 && !cur_blk_idx)
 		{
-			file->cur_blk_idx = cur_blk.next_blk;
-
-			//Grow file if needed
-			if (!file->cur_blk_idx)
-			{
-				uint32_t new_index;
-				err = append_blk_to_file(pt, file->entry_loc, &new_index, file);
-				ERR_NZERO(err, err, "Failed to grow file.\n");
-				file->cur_blk_idx = new_index;
-			}
+			err = append_blk_to_file(pt, file->entry_loc, &cur_blk_idx, file);
+			ERR_NZERO(err, err,  "Failed to grow file during write.\n");
+			file->cur_blk_idx = cur_blk_idx;
 		}
 	}
-
-	if (written)
-		*written = buffer_head;
 
 	return DFS_SUCCESS;
 }
