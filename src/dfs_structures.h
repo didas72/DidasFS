@@ -85,7 +85,7 @@ typedef struct
 {
 	blk_idx_t prev_blk;
 	blk_idx_t next_blk;
-	uint32_t used_space;
+	uint32_t used_space; //Could be 16-bit since block can hold up to 32K-16 < 64K
 	uint32_t resvd;
 } __attribute__((packed)) block_header;
 

@@ -87,6 +87,11 @@ typedef struct
 #define DFS_LOG_WARNING 2
 #define DFS_LOG_DEBUG 3
 
+//===Seek modes===
+#define DFS_SEEK_SET 0
+#define DFS_SEEK_CUR 1
+#define DFS_SEEK_END 2
+
 
 //===Function declarations===
 /**
@@ -186,7 +191,7 @@ dfs_err dfs_fread(dfs_partition *pt, const int descriptor, void *buffer, const s
  * @param pos The new position to set the stream to
  * @return int containing the error code for the operation
  */
-dfs_err dfs_fset_pos(dfs_partition *pt, const int descriptor, const size_t pos);
+dfs_err dfs_fseek(dfs_partition *pt, const int descriptor, const size_t offset, const int whence);
 /**
  * @brief Gets the stream position
  * 

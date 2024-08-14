@@ -292,14 +292,21 @@ dfs_err dfs_fread(dfs_partition *pt, const int descriptor, void *buffer, const s
 	return DFS_SUCCESS;
 }
 
-dfs_err dfs_fset_pos(dfs_partition *pt, const int descriptor, const size_t pos)
+dfs_err dfs_fseek(dfs_partition *pt, const int descriptor, const size_t offset, const int whence)
 {
+	//File cursor convention:
+	//cur_blk_idx should advance on block boundary (cur_blk_idx = file_blocks[head / BLOCK_DATA_SIZE])
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
+	ERR_IF(whence > DFS_SEEK_END, DFS_NVAL_ARGS, "The provided whence value '%d' is invalid.", whence);
 
 	dfs_err err;
 	dfs_file *file;
 	ERR_IF((err = handle_get(pt, descriptor, &file)), err, ERR_MSG_HANDLE_FETCH_FAIL(descriptor));
 
+	if (whence == DFS_SEEK_END)
+		ERR_IF((err = rewind_stream(pt, file)), err, "Failed to rewind stream for seek.\n");
+
+	size_t pos = offset + (whence == DFS_SEEK_SET ? 0 : file->head);
 	return set_stream_pos(pt, pos, file);
 }
 
@@ -682,84 +689,92 @@ static dfs_err validate_partition_header(const dfs_partition* pt)
 }
 
 static dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file)
-//File cursor convention:
-//cur_blk_idx should advance on block boundary, except at EOF, where it should be 0 (cur_blk_idx = file_blocks[head / BLOCK_DATA_SIZE])
+{
+	//Align file cursor to block start (easier later)
+	file->head = file->head % BLOCK_DATA_SIZE;
 
-//To seek:
-//Reset head to 0
-//Reset cur_blk_idx to first_blk_idx
-//while (head < position)
-//	diff = position - head
-//	if (diff > BLOCK_DATA_SIZE)
-//		cur_blk_idx = (next_blk_idx)
-//		head += BLOCK_DATA_SIZE
-//		//TODO: Grow file as needed
-//	else if (diff < BLOCK_DATA_SIZE)
-//		head += diff
-//		//TODO: Grow file as needed
-//	else
-//		//TODO: Grow file
-//		cur_blk_idx = (next_blk_idx)
-//		head += diff
-{ //TODO: Maybe break down into smaller functions
-	//TODO: Rewrite to comply with file cursor convention
+	if (file->head == position)
+		return DFS_SUCCESS;
+
+	if (file->head > position) //Reset file to beggining
+	{
+		file->head = 0;
+		file->cur_blk_idx = file->first_blk_idx;
+	}
+
+	return advance_stream(pt, position - file->head, file);
+}
+
+static dfs_err advance_stream(dfs_partition *pt, size_t offset, dfs_file *file)
+{
+	//Expects file cursor to be aligned on block start
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(file, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(file));
 
-	size_t cur_pos = 0, left;
-	uint32_t cur_blk = file->first_blk_idx;
-	block_header cur_header;
-	ssize_t readc;
+	size_t left = offset;
 	dfs_err err;
+	size_t readc;
+	blk_idx_t cur_blk_idx = file->cur_blk_idx;
+	block_header cur_blk = { 0 };
 
-	while (cur_pos != position)
+	while (left > 0)
 	{
-		left = position - cur_pos;
-		readc = device_read_at_blk(cur_blk, &cur_header, sizeof(block_header), pt);
+		readc = device_read_at_blk(cur_blk_idx, &cur_blk, sizeof(block_header), pt);
 		ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
-		if (left >= BLOCK_DATA_SIZE) //Full block skip
+		if (left >= BLOCK_DATA_SIZE)
 		{
-			if (cur_header.next_blk)
+			if (!cur_blk.next_blk) //Grow file
 			{
-				//REVIEW: Might not be needed, if next_blk is set then all space should be in use
-				//Update used space if neeed
-				if (cur_header.used_space < BLOCK_DATA_SIZE)
-				{
-					cur_header.used_space = BLOCK_DATA_SIZE;
-					readc = device_write_at_blk(cur_blk, &cur_header, sizeof(block_header), pt);
-					ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
-				}
-
-				//Advance block
-				cur_blk = cur_header.next_blk;
+				err = append_blk_to_file(pt, file->entry_loc, &cur_blk_idx, file);
+				ERR_NZERO(err, err, "Failed to grow file during seek.\n");
 			}
 			else
-			{
-				//FIXME: Might need to increase used space
+				cur_blk_idx = cur_blk.next_blk;
 
-				//Grow file
-				uint32_t new_index;
-				err = append_blk_to_file(pt, file->entry_loc, &new_index, file);
-				ERR_NZERO(err, err, "Failed to grow file.\n");
-				cur_blk = new_index;
-			}
-			cur_pos += BLOCK_DATA_SIZE;
+			file->head += BLOCK_DATA_SIZE;
+			left -= BLOCK_DATA_SIZE;
 		}
-		else //Partial block advance
+		else
 		{
-			if (left > cur_header.used_space) //Grow used space
+			if (left > cur_blk.used_space) //Grow used space
 			{
-				cur_header.used_space = left;
-				readc = device_write_at_blk(cur_blk, &cur_header, sizeof(block_header), pt);
+				cur_blk.used_space = left;
+				readc = device_write_at_blk(cur_blk_idx, &cur_blk, sizeof(block_header), pt);
 				ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
 			}
-			cur_pos += left;
+
+			file->head += left;
+			left = 0;
 		}
 	}
 
-	file->cur_blk_idx = cur_blk;
-	file->head = cur_pos;
+	file->cur_blk_idx = cur_blk_idx;
+	return DFS_SUCCESS;
+}
+
+static dfs_err rewind_stream(dfs_partition *pt, dfs_file *file)
+{
+	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
+	ERR_NULL(file, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(file));
+
+	//Align cursor on block start
+	file->head = file->head % BLOCK_DATA_SIZE;
+
+	size_t readc;
+	blk_idx_t cur_blk_idx = file->cur_blk_idx;
+	block_header cur_blk = { 0 };
+
+	while (cur_blk_idx)
+	{
+		readc = device_read_at_blk(cur_blk_idx, &cur_blk, sizeof(block_header), pt);
+		ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
+
+		file->head += cur_blk.used_space;
+		file->cur_blk_idx = cur_blk_idx;
+
+		cur_blk_idx = cur_blk.next_blk;
+	}
 
 	return DFS_SUCCESS;
 }
@@ -927,8 +942,9 @@ static dfs_err append_blk_to_file(const dfs_partition *pt, const entry_ptr_loc e
 	readc = device_read_at_blk(old_block_idx, &old_block, sizeof(block_header), pt);
 	ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
-	//Update index
+	//Update index and used space
 	old_block.next_blk = new_blk_idx;
+	old_block.used_space = BLOCK_DATA_SIZE;
 
 	//Flush changes
 	readc = device_write_at_blk(old_block_idx, &old_block, sizeof(block_header), pt);

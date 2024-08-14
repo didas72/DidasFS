@@ -39,6 +39,8 @@ static size_t determine_blk_count(size_t maxSize, size_t *partition_size);
 static dfs_err init_empty_partition(const char *device, size_t blk_count);
 static dfs_err validate_partition_header(const dfs_partition *pt);
 static dfs_err set_stream_pos(dfs_partition *pt, const size_t position, dfs_file *file);
+static dfs_err advance_stream(dfs_partition *pt, size_t offset, dfs_file *file);
+static dfs_err rewind_stream(dfs_partition *pt, dfs_file *file);
 #pragma endregion
 
 #pragma region Block navigation

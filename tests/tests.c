@@ -388,33 +388,35 @@ MU_TEST(seek_file)
 	mu_assert_int_eq(DFS_SUCCESS, err);
 	mu_assert_int_eq(strlen(data), pos);
 
-	err = dfs_fset_pos(pt, fd, 0);
+	err = dfs_fseek(pt, fd, 0, DFS_SEEK_SET);
 	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	err = dfs_fget_pos(pt, fd, &pos);
 	mu_assert_int_eq(DFS_SUCCESS, err);
 	mu_assert_int_eq(0, pos);
 
-	err = dfs_fset_pos(pt, fd, 5);
+	err = dfs_fseek(pt, fd, 5, DFS_SEEK_SET);
 	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	err = dfs_fget_pos(pt, fd, &pos);
 	mu_assert_int_eq(DFS_SUCCESS, err);
 	mu_assert_int_eq(5, pos);
 
-	err = dfs_fset_pos(pt, fd, 500);
+	err = dfs_fseek(pt, fd, 500, DFS_SEEK_SET);
 	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	err = dfs_fget_pos(pt, fd, &pos);
 	mu_assert_int_eq(DFS_SUCCESS, err);
 	mu_assert_int_eq(500, pos);
 
-	err = dfs_fset_pos(pt, fd, 0x8100);
+	err = dfs_fseek(pt, fd, 0x8100, DFS_SEEK_SET);
 	mu_assert_int_eq(DFS_SUCCESS, err);
 
 	err = dfs_fget_pos(pt, fd, &pos);
 	mu_assert_int_eq(DFS_SUCCESS, err);
 	mu_assert_int_eq(0x8100, pos);
+
+	//TODO: Test other values of WHENCE
 
 	dfs_fclose(pt, fd);
 	dfs_pclose(pt);
@@ -549,9 +551,11 @@ MU_TEST(null_args_files_errors)
 	err = dfs_fread(pt, fd, NULL, 0, NULL);
 	mu_assert(err == DFS_NVAL_ARGS, "dfs_fread accepted a NULL buffer.");
 
-	//==fset_pos==
-	err = dfs_fset_pos(NULL, fd, 0);
+	//==fseek==
+	err = dfs_fseek(NULL, fd, 0, DFS_SEEK_SET);
 	mu_assert(err == DFS_NVAL_ARGS, "dfs_fset_pos accepted a NULL partition.");
+	err = dfs_fseek(pt, fd, 0, 500);
+	mu_assert(err == DFS_NVAL_ARGS, "dfs_fset_pos accepted an invalid whence value.");
 
 	//==fget_pos==
 	err = dfs_fget_pos(NULL, fd, &pos);
