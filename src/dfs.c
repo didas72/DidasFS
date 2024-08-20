@@ -67,14 +67,14 @@ dfs_err dfs_popen(const char *device, dfs_partition **pt)
 		close(ptr->device), ptr, "Partition header validation failed.\n");
 
 	//Determine address of root block for fast access
-	uint32_t usage_map_size;
+	uint32_t block_count;
 	lseek(ptr->device, 4, SEEK_SET);
-	ssize_t readc = read(ptr->device, &usage_map_size, sizeof(uint32_t));
+	ssize_t readc = read(ptr->device, &block_count, sizeof(uint32_t));
 	ERR_IF_CLEANUP_FREE1(readc != sizeof(uint32_t), DFS_FAILED_DEVICE_READ,
 		close(ptr->device), ptr, ERR_MSG_DEVICE_READ_FAIL);
 
-	ptr->root_blk_addr = determine_first_blk_addr(usage_map_size);
-	ptr->blk_count = usage_map_size << 3;
+	ptr->root_blk_addr = determine_first_blk_addr(block_count);
+	ptr->blk_count = block_count;
 
 	ERR_NZERO_CLEANUP_FREE1((err = load_blk_map(ptr)), err, close(ptr->device), ptr, "Failed to load block map.\n");
 
@@ -512,7 +512,7 @@ static dfs_err force_allocate_space(const char *device, size_t size)
 
 	lseek(file, size - 1, SEEK_SET);
 	ssize_t writtec = write(file, &zero, 1);
-	ERR_IF(writtec == -1, DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
+	ERR_IF(writtec != 1, DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
 	close(file);
 
 	return DFS_SUCCESS;
@@ -532,7 +532,7 @@ static size_t blk_off_to_addr(const dfs_partition *partition, const blk_idx_t in
 static size_t entry_loc_to_addr(const dfs_partition *partition, const entry_ptr_loc entry_loc)
 {
 	if (entry_loc.blk_idx == ~0u && entry_loc.entry_idx == ~0u)
-		return partition->root_blk_addr - sizeof(entry_pointer);
+		return sizeof(partition_header) + sizeof(entry_pointer);
 
 	size_t base_address = blk_idx_to_addr(partition, entry_loc.blk_idx);
 	size_t offset = sizeof(block_header) + sizeof(entry_pointer) * entry_loc.entry_idx;
@@ -556,8 +556,7 @@ static size_t determine_first_blk_addr(uint32_t blk_count)
 
 static size_t determine_size_from_blk_count(size_t blk_count)
 {
-	size_t usage_map_size = blk_count >> 3;
-	size_t dts = determine_first_blk_addr(usage_map_size);
+	size_t dts = determine_first_blk_addr(blk_count);
 	return dts + blk_count * BLOCK_SIZE;
 }
 
@@ -588,13 +587,11 @@ static size_t determine_blk_count(size_t maxSize, size_t *partition_size)
 		}
 	}
 
-	return ~0;
+	return 0;
 
 return_value:
 	if (partition_size)
 		*partition_size = determine_size_from_blk_count(current);
-
-	//FIXME: Returned value is not multiple of 8, breaks partition header
 
 	return current;
 }
@@ -610,22 +607,34 @@ static dfs_err init_empty_partition(const char *device, size_t blk_count)
 
 	//Write header
 	partition_header header = { .magic_number = MAGIC_NUMBER,
-		.block_count = blk_count };
+		.block_count = blk_count, .resvd = 0 };
 	size_t written = write(file, &header, sizeof(partition_header));
 	ERR_IF_CLEANUP(written != sizeof(partition_header),
 		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
 
-	//Clear block map
-	char zeros[512] = { 0 };
-	written = write(file, zeros, 512 - sizeof(partition_header));
-	ERR_IF_CLEANUP(written != 512 - sizeof(partition_header),
+	//Set root entry_pointer
+	entry_pointer root_pointer = { .first_blk = 0, .last_blk = 0, .flags = ENTRY_FLAG_DIR, .resvd = 0, .name = {0} };
+	memcpy(root_pointer.name, "FSRoot!PlsNoTouchy:)", MAX_PATH_NAME); //REVIEW: Sketchy
+	written = write(file, &root_pointer, sizeof(root_pointer));
+	ERR_IF_CLEANUP(written != sizeof(entry_pointer),
 		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
 
-	for (size_t i = 1; ((512 - sizeof(partition_header)) << 3) + (i << 12) < blk_count; i++)
+	//Clear block map
+	char zeros[SECTOR_SIZE] = { 0 };
+	size_t blocks_left = blk_count;
+	size_t first_sector_bytes = SECTOR_SIZE - sizeof(partition_header) - sizeof(entry_pointer);
+	written = write(file, zeros, first_sector_bytes);
+	ERR_IF_CLEANUP(written != first_sector_bytes,
+		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
+	blocks_left -= MIN(first_sector_bytes << 3, blocks_left);
+
+	while (blocks_left > 0)
 	{
-		written = write(file, zeros, 512);
-		ERR_IF_CLEANUP(written != 512,
+		written = write(file, zeros, SECTOR_SIZE);
+		ERR_IF_CLEANUP(written != SECTOR_SIZE,
 			DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
+			
+		blocks_left -= MIN(SECTOR_SIZE * 8, blocks_left); //Bits per sector
 	}
 
 	//Set root to used
@@ -635,17 +644,9 @@ static dfs_err init_empty_partition(const char *device, size_t blk_count)
 	ERR_IF_CLEANUP(written != 1,
 		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
 
-	//Set root entry_pointer
-	entry_pointer root_pointer = { .first_blk = 0, .last_blk = 0, .flags = ENTRY_FLAG_DIR, .resvd = 0, .name = {0} };
-	memcpy(root_pointer.name, "FSRoot!PlsNoTouchy:)", MAX_PATH_NAME);
-	lseek(file, determine_first_blk_addr(header.block_count) - sizeof(entry_pointer), SEEK_SET);
-	written = write(file, &root_pointer, sizeof(root_pointer));
-	ERR_IF_CLEANUP(written != sizeof(entry_pointer),
-		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
-
 	//Init root block header
 	block_header root_header = { 0 };
-	//Seeker should be at root block already
+	lseek(file, determine_first_blk_addr(blk_count), SEEK_SET);
 	written = write(file, &root_header, sizeof(block_header));
 	ERR_IF_CLEANUP(written != sizeof(block_header),
 		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
