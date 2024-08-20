@@ -364,6 +364,8 @@ MU_TEST(read_write_file)
 	mu_assert_int_eq(strlen(data), io);
 	mu_assert_string_eq(data, buff);
 
+	//TODO: Test read after end of file
+
 	dfs_fclose(pt, fd);
 	dfs_pclose(pt);
 }
@@ -439,6 +441,7 @@ MU_TEST(read_write_align_file)
 	dfs_fopen(pt, "read_write_align.file", DFS_FILEM_WRITE, &fd);
 
 	//TODO: Update write tests when reimplementing fwrite
+	//Write one block
 	err = dfs_fwrite(pt, fd, data, BLOCK_DATA_SIZE, &io);
 	mu_assert_int_eq(DFS_SUCCESS, err);
 	mu_assert_int_eq(BLOCK_DATA_SIZE, io);
@@ -457,6 +460,11 @@ MU_TEST(read_write_align_file)
 			break;
 		}
 	}
+
+	//Check cursor set properly
+	err = dfs_fget_pos(pt, fd, &io);
+	mu_assert_int_eq(DFS_SUCCESS, err);
+	mu_assert_int_eq(BLOCK_DATA_SIZE, io);
 	
 	//Read with cursor aligned on block boundary and at file end
 	err = dfs_fread(pt, fd, data, BLOCK_DATA_SIZE, &io);

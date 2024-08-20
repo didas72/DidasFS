@@ -207,76 +207,74 @@ dfs_err dfs_fwrite(dfs_partition *pt, const int descriptor, const void *buffer, 
 			ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
 		}
 
-		if (written)
-			*written = len;
 		cur_blk_idx = cur_blk.next_blk;
 
-		if (left > 0 && !cur_blk_idx)
+		if (write_end == BLOCK_DATA_SIZE && !cur_blk_idx) //Grow if written to end and no further blocks (even if nothing left to write, to comply with cursor convention)
 		{
 			err = append_blk_to_file(pt, file->entry_loc, &cur_blk_idx, file);
 			ERR_NZERO(err, err,  "Failed to grow file during write.\n");
-			file->cur_blk_idx = cur_blk_idx;
 		}
 	}
+
+	file->cur_blk_idx = cur_blk_idx;
+	if (written)
+		*written = buff_head;
 
 	return DFS_SUCCESS;
 }
 
 dfs_err dfs_fread(dfs_partition *pt, const int descriptor, void *buffer, const size_t len, size_t *read)
 {
-	//TODO: Rewrite to comply with file cursor convention
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(buffer, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(buffer));
-	ERR_IF(len == 0, DFS_NVAL_ARGS, "Argument 'len' must not be 0.\n");
-
-	if (read) *read = 0;
-	size_t buff_head = 0;
-	dfs_err err;
-	dfs_file *file;
-
-	ERR_IF((err = handle_get(pt, descriptor, &file)), err, ERR_MSG_HANDLE_FETCH_FAIL(descriptor));
-
-	blk_idx_t prev_blk_idx, cur_blk_idx;
-	prev_blk_idx = cur_blk_idx = file->cur_blk_idx;
-	size_t head = file->head;
-	block_header cur_blk = { 0 };
-
-	if (cur_blk_idx == 0) //At the end of file
+	if (len == 0)
 	{
-		if (read) *read = 0;
+		if (read)
+			*read = 0;
 		return DFS_SUCCESS;
 	}
 
-	while (buff_head < len && cur_blk_idx)
+	dfs_err err;
+	dfs_file *file;
+	ERR_IF((err = handle_get(pt, descriptor, &file)), err, ERR_MSG_HANDLE_FETCH_FAIL(descriptor));
+
+	size_t buff_head = 0;
+	ssize_t readc;
+	block_header cur_blk;
+	blk_idx_t cur_blk_idx = file->cur_blk_idx;
+	size_t left = len - buff_head;
+
+	while (left > 0)
 	{
-		ssize_t readc;
 		readc = device_read_at_blk(cur_blk_idx, &cur_blk, sizeof(block_header), pt);
 		ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
-		size_t cur_blk_off = head % BLOCK_DATA_SIZE;
-		size_t data_left_to_read = len - buff_head;
-		size_t data_left_in_block = cur_blk.used_space - cur_blk_off;
-		size_t data_to_read = MIN(data_left_in_block, data_left_to_read);
+		size_t cur_blk_off = file->head % BLOCK_DATA_SIZE;
+		size_t data_ahead = cur_blk.used_space - cur_blk_off;
+		size_t to_read = MIN(left, data_ahead);
+
+		if (to_read == 0) break; //End of file
 
 		size_t addr = blk_off_to_addr(pt, cur_blk_idx, cur_blk_off);
-		readc = device_read_at(addr, buffer + buff_head, data_to_read, pt);
-		ERR_IF((size_t)readc != data_to_read, DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
+		readc = device_read_at(addr, &((char*)buffer)[cur_blk_off], to_read, pt);
+		ERR_IF((size_t)readc != to_read, DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
-		head += data_to_read;
-		buff_head += data_to_read;
-
-		prev_blk_idx = cur_blk_idx;
+		buff_head += to_read;
+		left -= to_read;
+		file->head += to_read;
 		cur_blk_idx = cur_blk.next_blk;
+
+		if (cur_blk_off + to_read == BLOCK_DATA_SIZE && !cur_blk_idx) //Grow if read to end and no further blocks (even if nothing left to read, to comply with cursor convention)
+		{
+			err = append_blk_to_file(pt, file->entry_loc, &cur_blk_idx, file);
+			ERR_NZERO(err, err,  "Failed to grow file during read. (Yes it is a thing)\n"); //RIP when user sees this lmao
+		}
 	}
 
-	//Set cur_blk_idx depending on whether cursor is on block boundary
-	if (head % BLOCK_DATA_SIZE == 0)	
-		file->cur_blk_idx = cur_blk_idx;
-	else
-		file->cur_blk_idx = prev_blk_idx;
+	file->cur_blk_idx = cur_blk_idx;
+	if (read)
+		*read = buff_head;
 
-	file->head = head;
-	if (read) *read = buff_head;
 	return DFS_SUCCESS;
 }
 
