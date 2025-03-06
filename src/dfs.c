@@ -242,7 +242,7 @@ dfs_err dfs_fread(dfs_partition *pt, const int descriptor, void *buffer, const s
 	ssize_t readc;
 	block_header cur_blk;
 	blk_idx_t cur_blk_idx = file->cur_blk_idx;
-	size_t left = len - buff_head;
+	size_t left = len;
 
 	while (left > 0)
 	{
@@ -262,7 +262,9 @@ dfs_err dfs_fread(dfs_partition *pt, const int descriptor, void *buffer, const s
 		buff_head += to_read;
 		left -= to_read;
 		file->head += to_read;
-		cur_blk_idx = cur_blk.next_blk;
+
+		if (cur_blk_off + to_read == BLOCK_DATA_SIZE)
+			cur_blk_idx = cur_blk.next_blk;
 
 		if (cur_blk_off + to_read == BLOCK_DATA_SIZE && !cur_blk_idx) //Grow if read to end and no further blocks (even if nothing left to read, to comply with cursor convention)
 		{

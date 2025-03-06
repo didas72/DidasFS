@@ -60,7 +60,7 @@ static int file_ensure_capacity(int fd, size_t capacity)
 
 int ram_open(const char *pathname, int flags, ...)
 {
-	printf("Open with %s and %d\n", pathname, flags);
+	//printf("Open with %s and %d\n", pathname, flags);
 	//ignore varargs
 
 	int fd = -1;
@@ -79,12 +79,11 @@ int ram_open(const char *pathname, int flags, ...)
 		if ((flags & O_CREAT) == 0)
 		{
 			errno = ENOENT;
-			printf("Need O_CREAT\n");
 			return -1;
 		}
 		if (fd_counter >= MAX_FILES)
 		{
-			fprintf(stderr, "Reached max file cap\n");
+			errno = ENFILE;
 			return -1;
 		}
 		fd = fd_counter++;

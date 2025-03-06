@@ -205,7 +205,6 @@ MU_TEST(create_directory)
 	char *device = "./test_directories_good.hex";
 
 	err = dfs_popen(device, &pt);
-	printf("Open err=%d\n", err);
 
 	err = dfs_dcreate(pt, "test dir");
 	mu_assert_int_eq(DFS_SUCCESS, err);
@@ -396,7 +395,46 @@ MU_TEST(read_write_file)
 	mu_assert_int_eq(strlen(data), io);
 	mu_assert_string_eq(data, buff);
 
-	//TODO: Test read after end of file
+	//TODO: Very long files
+
+	dfs_fclose(pt, fd);
+	dfs_pclose(pt);
+}
+
+MU_TEST(read_eof)
+{
+	fprintf(stderr, "\nEntering %s\n\n", __func__);
+
+	dfs_err err;
+	dfs_partition *pt;
+	char *device = "./test_files_good.hex";
+	char data[] = "Test string";
+	char *buff = malloc(1024);
+
+	int fd;
+	size_t io;
+	size_t len = strlen(data);
+	dfs_popen(device, &pt);
+	dfs_fcreate(pt, "short.file");
+	dfs_fopen(pt, "short.file", DFS_FILEM_WRITE, &fd);
+	dfs_fwrite(pt, fd, data, len, NULL);
+	dfs_fclose(pt, fd);
+	dfs_fopen(pt, "short.file", DFS_FILEM_READ, &fd);
+	dfs_fread(pt, fd, buff, len, NULL);
+
+	//aligned with file end
+	err = dfs_fread(pt, fd, buff, 1024, &io);
+	mu_assert_int_eq(0, err);
+	mu_assert(io == 0, "fread read past the end of file (aligned).");
+
+	dfs_fseek(pt, fd, len - 2, SEEK_SET);
+
+	//unaligned with file end
+	err = dfs_fread(pt, fd, buff, 1024, &io);
+	mu_assert_int_eq(0, err);
+	mu_assert(io == 2, "fread read past the end of file (unaligned).");
+
+	//TODO: File size matched data in block
 
 	dfs_fclose(pt, fd);
 	dfs_pclose(pt);
@@ -534,6 +572,7 @@ MU_TEST_SUITE(dfs_files_good)
 	MU_RUN_TEST(read_write_file);
 	MU_RUN_TEST(seek_file);
 	MU_RUN_TEST(read_write_align_file);
+	MU_RUN_TEST(read_eof);
 }
 #pragma endregion
 
