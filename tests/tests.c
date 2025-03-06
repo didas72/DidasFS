@@ -1,8 +1,12 @@
 //tests.c - Tests
 
 #include <stdlib.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 #include "framework/minunit.h"
+#include "mocks.h"
+#include "mocks_interface.h"
 
 #include "../src/dfs.h"
 #include "../src/paths.h"
@@ -10,6 +14,22 @@
 //For more thourough tests and for constants access
 #include "../src/dfs_structures.h"
 //#include "../src/dfs_internals.h"
+
+#pragma region Mock setup
+void mock_init()
+{
+#ifdef MOCK_DEVICE
+	ram_reset_files(0);
+#endif
+}
+
+void mock_setup()
+{
+#ifdef MOCK_DEVICE
+	ram_reset_files(1);
+#endif
+}
+#pragma endregion
 
 #pragma region Path functions
 MU_TEST(combine)
@@ -67,6 +87,8 @@ MU_TEST(create_partition)
 
 	err = dfs_pcreate(device, avail_size);
 	mu_assert_int_eq(DFS_SUCCESS, err);
+
+	//TODO: Max size
 }
 
 MU_TEST(open_close_partition)
@@ -90,6 +112,8 @@ MU_TEST(open_close_partition)
 
 MU_TEST_SUITE(dfs_partition_good)
 {
+	mock_setup();
+
 	MU_RUN_TEST(create_partition);
 	MU_RUN_TEST(open_close_partition);
 }
@@ -104,7 +128,6 @@ MU_TEST(create_partition_errors)
 	size_t avail_size = 1 << 20; //1M
 	char *device = "./test_create_partition_erros.hex";
 
-	//Spotted and fixed
 	err = dfs_pcreate(NULL, avail_size);
 	mu_assert(err == DFS_NVAL_ARGS, "dfs_pcreate accepted a NULL device.");
 
@@ -116,6 +139,8 @@ MU_TEST(create_partition_errors)
 
 	err = dfs_pcreate(device, BLOCK_SIZE + SECTOR_SIZE);
 	mu_assert(err == DFS_SUCCESS, "dfs_pcreate rejected the minimum value for available size.");
+
+	//TODO: Larger than max size
 }
 
 MU_TEST(open_close_partition_errors)
@@ -151,10 +176,10 @@ MU_TEST(open_corrupt_partition_errors)
 	char zero = 0;
 
 	//Generate corrupted partition
-	FILE *file = fopen(device, "wb");
-	fseek(file, 0x100000 - 1, SEEK_SET);
-	fwrite(&zero, 1, 1, file);
-	fclose(file);
+	int fd = open(device, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
+	lseek(fd, 0x100000 - 1, SEEK_SET);
+	write(fd, &zero, 1);
+	close(fd);
 
 	err = dfs_popen(device, &pt);
 	mu_assert(err == DFS_CORRUPTED_PARTITION, "dfs_popen accepted a corrupted partition.");
@@ -162,6 +187,8 @@ MU_TEST(open_corrupt_partition_errors)
 
 MU_TEST_SUITE(dfs_partition_errors)
 {
+	mock_setup();
+
 	MU_RUN_TEST(create_partition_errors);
 	MU_RUN_TEST(open_close_partition_errors);
 	MU_RUN_TEST(open_corrupt_partition_errors);
@@ -177,7 +204,8 @@ MU_TEST(create_directory)
 	dfs_partition *pt;
 	char *device = "./test_directories_good.hex";
 
-	dfs_popen(device, &pt);
+	err = dfs_popen(device, &pt);
+	printf("Open err=%d\n", err);
 
 	err = dfs_dcreate(pt, "test dir");
 	mu_assert_int_eq(DFS_SUCCESS, err);
@@ -215,6 +243,8 @@ MU_TEST(create_directory_nested)
 
 MU_TEST_SUITE(dfs_directories_good)
 {
+	mock_setup();
+
 	size_t avail_size = 1 << 20; //1M
 	char *device = "./test_directories_good.hex";
 
@@ -271,6 +301,8 @@ MU_TEST(empty_name_directories_errors)
 
 MU_TEST_SUITE(dfs_directories_errors)
 {
+	mock_setup();
+
 	size_t avail_size = 1 << 20; //1M
 	char *device = "./test_directories_errors.hex";
 
@@ -490,6 +522,8 @@ MU_TEST(read_write_align_file)
 
 MU_TEST_SUITE(dfs_files_good)
 {
+	mock_setup();
+
 	size_t avail_size = 1 << 20; //1M
 	char *device = "./test_files_good.hex";
 
@@ -626,6 +660,8 @@ MU_TEST(invalid_dir_files_errors)
 
 MU_TEST_SUITE(dfs_files_errors)
 {
+	mock_setup();
+	
 	size_t avail_size = 1 << 20; //1M
 	char *device = "./test_files_errors.hex";
 
@@ -690,6 +726,8 @@ MU_TEST(list_entries)
 
 MU_TEST_SUITE(dfs_management_good)
 {
+	mock_setup();
+	
 	size_t avail_size = 1 << 20; //1M
 	char *device = "./test_management_good.hex";
 
@@ -726,6 +764,8 @@ MU_TEST(list_entries_errors)
 
 MU_TEST_SUITE(dfs_management_errors)
 {
+	mock_setup();
+	
 	size_t avail_size = 1 << 20; //1M
 	char *device = "./test_management_errors.hex";
 

@@ -3,69 +3,79 @@ AR_FLAGS=rcs
 CC=gcc
 C_FLAGS=-Wall -Wextra -ggdb -Wno-unknown-pragmas
 VAL_FLAGS=--leak-check=full --show-leak-kinds=all --track-origins=yes -s
+MOCK_FLAGS=-DMOCK_DEVICE
+#MOCK_FLAGS=
 
-SRC=src
-TEST=tests
-OBJ=build/obj
-BIN=build/bin
-DOC=doc
+DIR_SRC=src
+DIR_TEST=tests
+DIR_OBJ=build/obj
+DIR_BIN=build/bin
+DIR_DOC=doc
 
-OUTBIN=$(BIN)/libdfs.a
-TESTBIN=$(BIN)/tester
+OUTLIB=$(DIR_BIN)/libdfs.a
+TESTLIB=$(DIR_BIN)/libdfs_test.a
+TESTBIN=$(DIR_BIN)/tester
 
-SRCS=$(shell find $(SRC) -type f -name '*.c')
-OBJS=$(patsubst $(SRC)/%.c,$(OBJ)/%.o,$(SRCS))
+SRCS=$(shell find $(DIR_SRC) -type f -name '*.c')
+OBJS=$(patsubst $(DIR_SRC)/%.c,$(DIR_OBJ)/%.o,$(SRCS))
 
-TSRCS=$(wildcard $(TEST)/*.c)
-TOBJS=$(patsubst $(TEST)/%.c,$(OBJ)/tests/%.o,$(TSRCS))
+TSOBJS=$(patsubst $(DIR_SRC)/%.c,$(DIR_OBJ)/%_test.o,$(SRCS))
+
+TSRCS=$(wildcard $(DIR_TEST)/*.c)
+TOBJS=$(patsubst $(DIR_TEST)/%.c,$(DIR_OBJ)/tests/%.o,$(TSRCS))
 
 
 .PHONY: all build build-tests test debug memleak release loc doc clean-all clean clean-tests clean-doc
 
 
-all: $(OUTBIN)
-build: $(OUTBIN)
+all: $(OUTLIB)
+build: $(OUTLIB)
 build-tests: $(TESTBIN)
-rebuild: clean $(OUTBIN)
+rebuild: clean $(OUTLIB)
 rebuild-tests: clean $(TESTBIN)
 
 release: C_FLAGS=-Wall -Wextra -O2 -Wno-unknown-pragmas
-release: clean
-release: $(OUTBIN)
+release: clean $(OUTLIB)
 
 
 
-$(OUTBIN): $(OBJS)
+$(DIR_OBJ)/%_test.o: $(DIR_SRC)/%.c
 	@mkdir -p $(@D)
-	$(AR) $(AR_FLAGS) $@ $(OBJS)
+	$(CC) $(C_FLAGS) -include tests/mocks_interface.h $(MOCK_FLAGS) -o $@ -c $<
 
-$(OBJ)/%.o: $(SRC)/%.c
+$(DIR_OBJ)/%.o: $(DIR_SRC)/%.c
 	@mkdir -p $(@D)
-	$(CC) $(C_FLAGS) -c $< -o $@
+	$(CC) $(C_FLAGS) -o $@ -c $<
+
+$(OUTLIB): $(OBJS)
+	@mkdir -p $(@D)
+	$(AR) $(AR_FLAGS) $@ $^
+
+$(TESTLIB): $(TSOBJS)
+	@mkdir -p $(@D)
+	$(AR) $(AR_FLAGS) $@ $^
+
+$(TESTBIN): $(TESTLIB) $(TOBJS)
+	@mkdir -p $(@D)
+	$(CC) $(C_FLAGS) $(TOBJS) -o $@ -lrt -lm -ldfs_test -L$(DIR_BIN)
+
+$(DIR_OBJ)/tests/%.o: $(DIR_TEST)/%.c
+	@mkdir -p $(@D)
+	$(CC) $(C_FLAGS) -Wno-unused-function $(MOCK_FLAGS) -o $@ -c $<
 
 
 
 test: $(TESTBIN) clean-tests
 	./$(TESTBIN) 2> stderr_redirect.log
 
-$(TESTBIN): $(TOBJS) $(OUTBIN)
-	@mkdir -p $(@D)
-	$(CC) $(C_FLAGS) $(TOBJS) -o $@ -ldfs -Lbuild/bin
-
-$(OBJ)/tests/%.o: $(TEST)/%.c
-	@mkdir -p $(@D)
-	$(CC) $(C_FLAGS) -c $< -o $@
-
-
-
 debug: $(TESTBIN)
 	gdb ./$(TESTBIN)
 
-memleak: $(TESTBIN)
+val: $(TESTBIN)
 	valgrind $(VAL_FLAGS) $(TESTBIN)
 
 loc:
-	@scc -s lines --no-cocomo --no-gitignore -w --size-unit binary --exclude-dir tests/framework src
+	@scc -s lines --no-cocomo --no-gitignore -w --size-unit binary --exclude-dir tests/framework $(DIR_SRC)
 
 doc:
 	doxygen Doxyfile
@@ -74,10 +84,10 @@ doc:
 clean-all: clean clean-tests clean-doc
 
 clean:
-	@$(RM) -r $(OBJ) $(BIN)
+	@$(RM) -r $(DIR_OBJ) $(DIR_BIN)
 
 clean-tests:
 	@$(RM) *.hex *.log
 
 clean-doc:
-	@$(RM) -r $(DOC)/doxygen
+	@$(RM) -r $(DIR_DOC)/doxygen

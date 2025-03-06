@@ -68,7 +68,7 @@ dfs_err dfs_popen(const char *device, dfs_partition **pt)
 
 	//Determine address of root block for fast access
 	uint32_t block_count;
-	lseek(ptr->device, 4, SEEK_SET);
+	lseek(ptr->device, 4, SEEK_SET); //TODO: Error check
 	ssize_t readc = read(ptr->device, &block_count, sizeof(uint32_t));
 	ERR_IF_CLEANUP_FREE1(readc != sizeof(uint32_t), DFS_FAILED_DEVICE_READ,
 		close(ptr->device), ptr, ERR_MSG_DEVICE_READ_FAIL);
@@ -504,12 +504,11 @@ static dfs_err force_allocate_space(const char *device, size_t size)
 {
 	ERR_NULL(device, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(device));
 	ERR_IF(size == 0, DFS_NVAL_ARGS, "Argument 'size' must not be 0.\n");
-
-	int file = open(device, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
+	
 	char zero = 0;
-
+	int file = open(device, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
 	ERR_IF(file == -1, DFS_FAILED_DEVICE_OPEN, ERR_MSG_DEVICE_OPEN_FAIL);
-
+	
 	lseek(file, size - 1, SEEK_SET);
 	ssize_t writtec = write(file, &zero, 1);
 	ERR_IF(writtec != 1, DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
@@ -668,7 +667,7 @@ static dfs_err validate_partition_header(const dfs_partition* pt)
 
 	partition_header buff;
 	ssize_t readc;
-	
+
 	readc = read(pt->device, &buff, sizeof(partition_header));
 	ERR_IF(readc != sizeof(partition_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 

@@ -12,15 +12,16 @@ Offset | Length | Type | Purpose
 -- | -- | -- | --
 0 | 4 | int | Magic number = 0x69DEAD69
 4 | 4 | int | Block count (BC)
-8 | 8 | N/A | Reserved
+8 | 8 | N/A | Reserved (zero out)
 16 | 32 | entry_pointer | Root pointer
 48 | BMS\* | bits | Block map
 DTS\* | BC\*BS | N/A | Data blocks
 
 **Remark:** Header size = 16 (+ 32)  
-**Remark:** BMS = BC / 8  
+**Remark:** BMS (Block Map Size) = BC / 8  
 **Remark:** DTS (DaTa Start) = 512 \* ceil((48 + BMS) / 512)  
-**Remark:** Maximum partition capacity = 2.199\*10^12 B ~ 1.999 TB
+**Remark:** Maximum partition capacity = ~127,9375 TB  
+**Remark:** Maximum partition size = ~128.0005TB
 
 ## Block structure
 
