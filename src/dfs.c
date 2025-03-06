@@ -264,12 +264,16 @@ dfs_err dfs_fread(dfs_partition *pt, const int descriptor, void *buffer, const s
 		file->head += to_read;
 
 		if (cur_blk_off + to_read == BLOCK_DATA_SIZE)
-			cur_blk_idx = cur_blk.next_blk;
-
-		if (cur_blk_off + to_read == BLOCK_DATA_SIZE && !cur_blk_idx) //Grow if read to end and no further blocks (even if nothing left to read, to comply with cursor convention)
 		{
-			err = append_blk_to_file(pt, file->entry_loc, &cur_blk_idx, file);
-			ERR_NZERO(err, err,  "Failed to grow file during read. (Yes it is a thing)\n"); //RIP when user sees this lmao
+			if (cur_blk.next_blk)
+			{
+				cur_blk_idx = cur_blk.next_blk;
+			}
+			else //Grow if read to end and no further blocks (even if nothing left to read, to comply with cursor convention)
+			{
+				err = append_blk_to_file(pt, file->entry_loc, &cur_blk_idx, file);
+				ERR_NZERO(err, err,  "Failed to grow file during read. (Yes it is a thing)\n"); //RIP when user sees this lmao
+			}
 		}
 	}
 
