@@ -12,7 +12,7 @@
 //===Types===
 ///@brief Holds an error code
 typedef int dfs_err;
-/// @brief Holds file creation flags
+///@brief Holds file creation flags
 typedef uint16_t dfs_filec_flags;
 ///@brief Holds file mode flags
 typedef uint32_t dfs_filem_flags;
