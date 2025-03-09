@@ -412,7 +412,29 @@ MU_TEST(read_write_file)
 	mu_assert_int_eq(strlen(data), io);
 	mu_assert_string_eq(data, buff);
 
-	//TODO: Files longer than block size
+	dfs_fclose(pt, fd);
+	dfs_fcreate(pt, "long_file.file");
+	dfs_fopen(pt, "long_file.file", DFS_FILEM_WRITE, &fd);
+
+	char long_data[BLOCK_DATA_SIZE + 16];
+	memset(long_data, 0x5A, BLOCK_DATA_SIZE + 16);
+	long_data[BLOCK_DATA_SIZE + 15] = 0;
+
+	err = dfs_fwrite(pt, fd, long_data, BLOCK_DATA_SIZE + 16, &io);
+	mu_assert_int_eq(DFS_SUCCESS, err);
+	mu_assert_int_eq(BLOCK_DATA_SIZE + 16, io);
+
+	dfs_fclose(pt, fd);
+	dfs_fopen(pt, "long_file.file", DFS_FILEM_READ, &fd);
+
+	char long_buff[BLOCK_DATA_SIZE + 16];
+
+	err = dfs_fread(pt, fd, long_buff, BLOCK_DATA_SIZE + 16, &io);
+	mu_assert_int_eq(DFS_SUCCESS, err);
+	mu_assert_int_eq(BLOCK_DATA_SIZE + 16, io);
+	mu_assert(strncmp(long_data, long_buff, BLOCK_DATA_SIZE + 16) == 0, "fread result differs from expected used on a long file.");
+	
+	//TODO: Test RW not aligned on block start
 
 	dfs_fclose(pt, fd);
 	dfs_pclose(pt);

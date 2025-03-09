@@ -192,7 +192,7 @@ dfs_err dfs_fwrite(dfs_partition *pt, const int descriptor, const void *buffer, 
 		size_t to_write = MIN(left, space_ahead);
 
 		size_t addr = blk_off_to_addr(pt, cur_blk_idx, cur_blk_off);
-		readc = device_write_at(addr, &((char*)buffer)[cur_blk_off], to_write, pt);
+		readc = device_write_at(addr, &((char*)buffer)[buff_head], to_write, pt);
 		ERR_IF((size_t)readc != to_write, DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
 
 		buff_head += to_write;
@@ -256,7 +256,7 @@ dfs_err dfs_fread(dfs_partition *pt, const int descriptor, void *buffer, const s
 		if (to_read == 0) break; //End of file
 
 		size_t addr = blk_off_to_addr(pt, cur_blk_idx, cur_blk_off);
-		readc = device_read_at(addr, &((char*)buffer)[cur_blk_off], to_read, pt);
+		readc = device_read_at(addr, &((char*)buffer)[buff_head], to_read, pt);
 		ERR_IF((size_t)readc != to_read, DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
 		buff_head += to_read;
