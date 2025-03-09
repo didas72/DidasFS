@@ -15,6 +15,8 @@
 #include "../src/dfs_structures.h"
 //#include "../src/dfs_internals.h"
 
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+
 #pragma region Mock setup
 void mock_init()
 {
@@ -298,6 +300,21 @@ MU_TEST(empty_name_directories_errors)
 	mu_assert(err == DFS_NVAL_PATH, "dfs_dcreate accepted an empty root directory name.");
 }
 
+MU_TEST(object_inside_files_errors)
+{
+	fprintf(stderr, "\nEntering %s\n\n", __func__);
+
+	dfs_err err;
+	dfs_partition *pt;
+	char *device = "./test_directories_errors.hex";
+
+	dfs_popen(device, &pt);
+	dfs_fcreate(pt, "file_not_dir");
+
+	err = dfs_dcreate(pt, "file_not_dir/file");
+	mu_assert(err == DFS_NVAL_PATH, "dfs_dcreate allowed the creation of directory under a file.");
+}
+
 MU_TEST_SUITE(dfs_directories_errors)
 {
 	mock_setup();
@@ -310,7 +327,7 @@ MU_TEST_SUITE(dfs_directories_errors)
 	MU_RUN_TEST(null_args_directories_errors);
 	MU_RUN_TEST(duplicated_directories_errors);
 	MU_RUN_TEST(empty_name_directories_errors);
-	//TODO: Test creation of objects inside files (already fixed)
+	MU_RUN_TEST(object_inside_files_errors);
 }
 #pragma endregion
 
@@ -395,7 +412,7 @@ MU_TEST(read_write_file)
 	mu_assert_int_eq(strlen(data), io);
 	mu_assert_string_eq(data, buff);
 
-	//TODO: Very long files
+	//TODO: Files longer than block size
 
 	dfs_fclose(pt, fd);
 	dfs_pclose(pt);
@@ -510,7 +527,6 @@ MU_TEST(read_write_align_file)
 	dfs_fcreate(pt, "read_write_align.file");
 	dfs_fopen(pt, "read_write_align.file", DFS_FILEM_WRITE, &fd);
 
-	//TODO: Update write tests when reimplementing fwrite
 	//Write one block
 	err = dfs_fwrite(pt, fd, data, BLOCK_DATA_SIZE, &io);
 	mu_assert_int_eq(DFS_SUCCESS, err);
@@ -744,7 +760,7 @@ MU_TEST(list_entries)
 	err = dfs_dlist_entries(pt, "", 16, entries, &count);
 	mu_assert_int_eq(DFS_SUCCESS, err);
 	mu_assert_int_eq(2, count);
-	//Ordering is not required
+	//FIXME: Ordering is not required
 	mu_assert_int_eq(false, entries[0].dir);
 	mu_assert_int_eq(0, entries[0].length);
 	mu_assert_string_eq("file1.test", entries[0].name);

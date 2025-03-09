@@ -269,7 +269,7 @@ dfs_err dfs_fread(dfs_partition *pt, const int descriptor, void *buffer, const s
 			{
 				cur_blk_idx = cur_blk.next_blk;
 			}
-			else //Grow if read to end and no further blocks (even if nothing left to read, to comply with cursor convention)
+			else //REVIEW: Shouldn't happen: //Grow if read to end and no further blocks (even if nothing left to read, to comply with cursor convention)
 			{
 				err = append_blk_to_file(pt, file->entry_loc, &cur_blk_idx, file);
 				ERR_NZERO(err, err,  "Failed to grow file during read. (Yes it is a thing)\n"); //RIP when user sees this lmao
@@ -334,7 +334,7 @@ dfs_err dfs_dlist_entries(dfs_partition *pt, const char *path, size_t capacity, 
 	entry_pointer cur_entry;
 	do //If first is 0 then root block was used. All entries are given a non-zero blk_idx at creation time
 	{
-		readc = device_read_at_blk(blk_idx, &cur_blk, sizeof(block_header), pt); //TODO: Error checking
+		readc = device_read_at_blk(blk_idx, &cur_blk, sizeof(block_header), pt);
 		ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
 		size_t entries_in_blk = cur_blk.used_space / sizeof(entry_pointer);
@@ -390,7 +390,7 @@ static dfs_err load_blk_map(dfs_partition* host)
 
 	ERR_NULL_FREE1(map->map, DFS_FAILED_ALLOC, map, ERR_MSG_ALLOC_FAIL);
 
-	ssize_t readc = device_read_at(sizeof(partition_header), map->map, map->length, host);
+	ssize_t readc = device_read_at(sizeof(partition_header) + sizeof(entry_pointer), map->map, map->length, host);
 
 	ERR_IF_FREE2(readc != (ssize_t)map->length, DFS_FAILED_DEVICE_READ, map->map, map, ERR_MSG_DEVICE_READ_FAIL);
 
@@ -433,7 +433,7 @@ static dfs_err flush_full_blk_map(const dfs_partition *pt)
 {
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
-	device_seek(SEEK_SET, sizeof(partition_header), pt);
+	device_seek(SEEK_SET, sizeof(partition_header) + sizeof(entry_pointer), pt);
 	size_t written = device_write(pt->usage_map->map, pt->usage_map->length, pt);
 
 	ERR_IF(written != pt->usage_map->length, DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
@@ -617,15 +617,9 @@ static dfs_err init_empty_partition(const char *device, size_t blk_count)
 	ERR_IF_CLEANUP(written != sizeof(partition_header),
 		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
 
-	//Set root entry_pointer
+	//Set and write root entry_pointer
 	entry_pointer root_pointer = { .first_blk = 0, .last_blk = 0, .flags = ENTRY_FLAG_DIR, .resvd = 0, .name = {0} };
-	memcpy(root_pointer.name, "FSRoot!PlsNoTouchy:)", MAX_PATH_NAME); //REVIEW: Sketchy
-	written = write(file, &root_pointer, sizeof(entry_pointer));
-	ERR_IF_CLEANUP(written != sizeof(entry_pointer),
-		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
-
-	//Write root entry_pointer
-	lseek(file, sizeof(partition_header), SEEK_SET);
+	memcpy(root_pointer.name, "FSRoot!PlsNoTouchy:)", MAX_PATH_NAME); //HACK: Length may differ if string changes
 	written = write(file, &root_pointer, sizeof(entry_pointer));
 	ERR_IF_CLEANUP(written != sizeof(entry_pointer),
 		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
@@ -650,7 +644,7 @@ static dfs_err init_empty_partition(const char *device, size_t blk_count)
 
 	//Set root to used
 	char root_used = 1;
-	lseek(file, sizeof(partition_header), SEEK_SET);
+	lseek(file, sizeof(partition_header) + sizeof(entry_pointer), SEEK_SET);
 	written = write(file, &root_used, 1);
 	ERR_IF_CLEANUP(written != 1,
 		DFS_FAILED_DEVICE_WRITE, close(file), ERR_MSG_DEVICE_WRITE_FAIL);
@@ -805,7 +799,7 @@ static dfs_err find_entry_ptr(const dfs_partition *pt, const char *path, entry_p
 }
 
 static dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t cur_blk, const char *path, entry_pointer *entry, entry_ptr_loc *entry_loc)
-{ //TODO: Maybe break down into smaller functions
+{ //REVIEW: Maybe break down into smaller functions
 	char root[MAX_PATH_NAME + 1];
 	char tail[MAX_PATH + 1];
 	char *search_name;
@@ -824,7 +818,7 @@ static dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t
 	search_name = dfs_path_is_empty(root) ? tail : root;
 
 	//Read current block entries
-	device_seek(SEEK_SET, blk_idx_to_addr(pt, cur_blk), pt); //TODO: Handle errors
+	device_seek(SEEK_SET, blk_idx_to_addr(pt, cur_blk), pt);
 	readc = device_read(&cur_header, sizeof(block_header), pt);
 	ERR_IF(readc != sizeof(block_header), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
@@ -834,7 +828,7 @@ static dfs_err find_entry_ptr_recursion(const dfs_partition* pt, const blk_idx_t
 	readc = device_read(entries, ENTRIES_PER_BLK * sizeof(entry_pointer), pt);
 	ERR_IF(readc != ENTRIES_PER_BLK * sizeof(entry_pointer), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 
-	//TODO: Possibly validate header used_space is multiple of sizeof(entry_pointer)
+	//REVIEW: Possibly validate header used_space is multiple of sizeof(entry_pointer)
 	int valid_entry_count = cur_header.used_space / sizeof(entry_pointer);
 
 	//Search entries for dir/file
@@ -882,7 +876,7 @@ static dfs_err find_free_blk(const dfs_partition *pt, blk_idx_t *index)
 	dfs_err err;
 	uint32_t i;
 
-	//TODO: Optimize to use usage_map byte searches (8 bits at a time)
+	//OPTIMIZE: Use usage_map byte searches (8 bits at a time)
 	for (i = 0; i < pt->blk_count; i++)
 	{
 		bool used;
@@ -900,7 +894,7 @@ static dfs_err find_free_blk(const dfs_partition *pt, blk_idx_t *index)
 #pragma endregion
 #pragma region Block manipulation
 static dfs_err append_blk_to_file(const dfs_partition *pt, const entry_ptr_loc entry_loc, blk_idx_t *new_idx, dfs_file *handle)
-{ //TODO: Maybe break down into smaller functions
+{ //REVIEW: Maybe break down into smaller functions
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 
 	dfs_err err;
@@ -1003,7 +997,7 @@ static dfs_err append_entry_to_dir(const dfs_partition *pt, const entry_ptr_loc 
 #pragma endregion
 #pragma region File manipulation
 static dfs_err create_object(dfs_partition *pt, const char *path, const uint16_t flags)
-{ //TODO: Maybe break down into smaller functions
+{ //REVIEW: Maybe break down into smaller functions
 	ERR_NULL(pt, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(pt));
 	ERR_NULL(path, DFS_NVAL_ARGS, ERR_MSG_NULL_ARG(path));
 	
@@ -1031,7 +1025,7 @@ static dfs_err create_object(dfs_partition *pt, const char *path, const uint16_t
 	//Check if parent is a directory
 	entry_pointer parent;
 	readc = device_read_at_entry_loc(parent_loc, &parent, pt);
-	ERR_IF(readc != sizeof(entry_pointer), DFS_FAILED_DEVICE_WRITE, ERR_MSG_DEVICE_WRITE_FAIL);
+	ERR_IF(readc != sizeof(entry_pointer), DFS_FAILED_DEVICE_READ, ERR_MSG_DEVICE_READ_FAIL);
 	ERR_IF(!(parent.flags & ENTRY_FLAG_DIR), DFS_NVAL_PATH, "Cannot create object inside a file.\n");
 
 	//Find and reserve free block
