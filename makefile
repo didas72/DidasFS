@@ -1,7 +1,7 @@
 AR=ar
 AR_FLAGS=rcs
 CC=gcc
-C_FLAGS=-Wall -Wextra -ggdb -Wno-unknown-pragmas
+C_FLAGS=-Wall -Wextra -pedantic -ggdb -Wno-unknown-pragmas
 VAL_FLAGS=--leak-check=full --show-leak-kinds=all --track-origins=yes -s
 MOCK_FLAGS=-DMOCK_DEVICE
 #MOCK_FLAGS=

@@ -4,7 +4,7 @@
 #define TESTS_MOCKS_INTERFACE_H
 
 #ifdef MOCK_DEVICE
-#define open(pathname, flags...) ram_open(pathname, flags)
+#define open(pathname, ...) ram_open(pathname, __VA_ARGS__)
 #define close(fd) ram_close(fd)
 #define read(fd, buf, count) ram_read(fd, buf, count)
 #define write(fd, buf, count) ram_write(fd, buf, count)
