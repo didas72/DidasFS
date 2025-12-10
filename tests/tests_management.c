@@ -11,6 +11,10 @@
 #include "../src/dfs.h"
 
 
+static dfs_err err;
+static dfs_partition *pt;
+
+
 TEST_GROUP(management_good);
 
 TEST_SETUP(management_good)
@@ -21,21 +25,20 @@ TEST_SETUP(management_good)
 	char *device = "./test_management_good.hex";
 
 	dfs_pcreate(device, avail_size);
+	dfs_popen(device, &pt);
 }
 
-TEST_TEAR_DOWN(management_good) { }
+TEST_TEAR_DOWN(management_good)
+{
+	dfs_pclose(pt);
+}
 
 TEST(management_good, list_entries)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
 
-	dfs_err err;
-	dfs_partition *pt;
-	char *device = "./test_management_good.hex";
-
 	size_t count;
 	dfs_entry entries[16] = { 0 };
-	dfs_popen(device, &pt);
 	
 	err = dfs_dlist_entries(pt, "", 0, NULL, &count);
 	TEST_ASSERT_EQUAL_INT(DFS_SUCCESS, err);
@@ -70,8 +73,6 @@ TEST(management_good, list_entries)
 	err = dfs_dlist_entries(pt, "dir1", 16, entries, &count);
 	TEST_ASSERT_EQUAL_INT(DFS_SUCCESS, err);
 	TEST_ASSERT_EQUAL_INT(0, count);
-
-	dfs_pclose(pt);
 }
 
 TEST_GROUP_RUNNER(management_good)
@@ -97,21 +98,20 @@ TEST_SETUP(mamagement_err)
 	char *device = "./test_management_errors.hex";
 
 	dfs_pcreate(device, avail_size);
+	dfs_popen(device, &pt);
 }
 
-TEST_TEAR_DOWN(mamagement_err) { }
+TEST_TEAR_DOWN(mamagement_err)
+{
+	dfs_pclose(pt);
+}
 
 TEST(mamagement_err, list_entries_errors)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
 
-	dfs_err err;
-	dfs_partition *pt;
-	char *device = "./test_management_errors.hex";
-
 	size_t count;
 	dfs_entry entries[16] = { 0 };
-	dfs_popen(device, &pt);
 
 	err = dfs_dlist_entries(NULL, "", 16, entries, &count);
 	TEST_ASSERT_EQUAL_INT_MESSAGE(DFS_NVAL_ARGS, err, "dfs_list_entries accepted a NULL partition.");
@@ -121,8 +121,6 @@ TEST(mamagement_err, list_entries_errors)
 
 	err = dfs_dlist_entries(pt, "", 16, NULL, &count);
 	TEST_ASSERT_EQUAL_INT_MESSAGE(DFS_NVAL_ARGS, err, "dfs_dlist_entries accepted a NULL entries pointer with a non zero capacity.");
-
-	dfs_pclose(pt);
 }
 
 TEST_GROUP_RUNNER(mamagement_err)

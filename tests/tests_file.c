@@ -12,6 +12,10 @@
 #include "../src/dfs_structures.h"
 
 
+static dfs_err err;
+static dfs_partition *pt;
+
+
 TEST_GROUP(file_good);
 
 TEST_SETUP(file_good)
@@ -22,19 +26,17 @@ TEST_SETUP(file_good)
 	char *device = "./test_files_good.hex";
 
 	dfs_pcreate(device, avail_size);
+	dfs_popen(device, &pt);
 }
 
-TEST_TEAR_DOWN(file_good) { }
+TEST_TEAR_DOWN(file_good)
+{
+	dfs_pclose(pt);
+}
 
 TEST(file_good, create_file)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
-
-	dfs_err err;
-	dfs_partition *pt;
-	char *device = "./test_files_good.hex";
-
-	dfs_popen(device, &pt);
 
 	err = dfs_fcreate(pt, "create.file");
 	TEST_ASSERT_EQUAL_INT(DFS_SUCCESS, err);
@@ -43,19 +45,12 @@ TEST(file_good, create_file)
 
 	err = dfs_fcreate(pt, "dir1/create1.file");
 	TEST_ASSERT_EQUAL_INT(DFS_SUCCESS, err);
-
-	dfs_pclose(pt);
 }
 
 TEST(file_good, open_close_file)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
 
-	dfs_err err;
-	dfs_partition *pt;
-	char *device = "./test_files_good.hex";
-
-	dfs_popen(device, &pt);
 	dfs_fcreate(pt, "open_close.file");
 	dfs_dcreate(pt, "dir2");
 	dfs_fcreate(pt, "dir2/open_close.file");
@@ -73,22 +68,16 @@ TEST(file_good, open_close_file)
 
 	err = dfs_fclose(pt, fd);
 	TEST_ASSERT_EQUAL_INT(DFS_SUCCESS, err);
-
-	dfs_pclose(pt);
 }
 
 TEST(file_good, read_write_file)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
 
-	dfs_err err;
-	dfs_partition *pt;
-	char *device = "./test_files_good.hex";
 	char *data = "I am a test string that will be written to file.\n";
 
 	int fd;
 	size_t io;
-	dfs_popen(device, &pt);
 	dfs_fcreate(pt, "read_write.file");
 	dfs_fopen(pt, "read_write.file", DFS_FILEM_WRITE, &fd);
 
@@ -126,28 +115,23 @@ TEST(file_good, read_write_file)
 	err = dfs_fread(pt, fd, long_buff, BLOCK_DATA_SIZE + 16, &io);
 	TEST_ASSERT_EQUAL_INT(DFS_SUCCESS, err);
 	TEST_ASSERT_EQUAL_INT(BLOCK_DATA_SIZE + 16, io);
-	TEST_ASSERT_EQUAL_INT_MESSAGE(0, strncmp(long_data, long_buff, BLOCK_DATA_SIZE + 16), "fread result differs from expected used on a long file."); //REVIEW
+	TEST_ASSERT_EQUAL_UINT8_ARRAY_MESSAGE(long_data, long_buff, BLOCK_DATA_SIZE + 16, "fread result differs from expected used on a long file.");
 	
 	//TODO: Test RW not aligned on block start
 
 	dfs_fclose(pt, fd);
-	dfs_pclose(pt);
 }
 
 TEST(file_good, read_eof)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
 
-	dfs_err err;
-	dfs_partition *pt;
-	char *device = "./test_files_good.hex";
 	char data[] = "Test string";
 	char *buff = malloc(1024);
 
 	int fd;
 	size_t io;
 	size_t len = strlen(data);
-	dfs_popen(device, &pt);
 	dfs_fcreate(pt, "short.file");
 	dfs_fopen(pt, "short.file", DFS_FILEM_WRITE, &fd);
 	dfs_fwrite(pt, fd, data, len, NULL);
@@ -170,21 +154,16 @@ TEST(file_good, read_eof)
 	//TODO: File size matched data in block
 
 	dfs_fclose(pt, fd);
-	dfs_pclose(pt);
 }
 
 TEST(file_good, seek_file)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
 
-	dfs_err err;
-	dfs_partition *pt;
-	char *device = "./test_files_good.hex";
 	char *data = "I am a test string that will use space to be able to seek.\n";
 
 	int fd;
 	size_t pos;
-	dfs_popen(device, &pt);
 	dfs_fcreate(pt, "seek.file");
 	dfs_fopen(pt, "seek.file", DFS_FILEM_WRITE, &fd);
 	dfs_fwrite(pt, fd, data, strlen(data), NULL);
@@ -224,22 +203,17 @@ TEST(file_good, seek_file)
 	//TODO: Test other values of WHENCE
 
 	dfs_fclose(pt, fd);
-	dfs_pclose(pt);
 }
 
 TEST(file_good, read_write_align_file)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
 
-	dfs_err err;
-	dfs_partition *pt;
-	char *device = "./test_files_good.hex";
 	char *data = malloc(BLOCK_DATA_SIZE);
 	memset(data, 0xFF, BLOCK_DATA_SIZE);
 
 	int fd;
 	size_t io;
-	dfs_popen(device, &pt);
 	dfs_fcreate(pt, "read_write_align.file");
 	dfs_fopen(pt, "read_write_align.file", DFS_FILEM_WRITE, &fd);
 
@@ -318,20 +292,19 @@ TEST_SETUP(file_err)
 	char *device = "./test_files_errors.hex";
 
 	dfs_pcreate(device, avail_size);
+	dfs_popen(device, &pt);
 }
 
-TEST_TEAR_DOWN(file_err) { }
+TEST_TEAR_DOWN(file_err)
+{
+	dfs_pclose(pt);
+}
 
 TEST(file_err, null_args_files_errors)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
 
-	dfs_err err;
-	dfs_partition *pt;
-	char *device = "./test_files_errors.hex";
 	int fd;
-
-	dfs_popen(device, &pt);
 
 	//==fcreate==
 	err = dfs_fcreate(NULL, "test.file");
@@ -395,11 +368,6 @@ TEST(file_err, duplicated_files_errors)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
 
-	dfs_err err;
-	dfs_partition *pt;
-	char *device = "./test_files_errors.hex";
-
-	dfs_popen(device, &pt);
 	dfs_fcreate(pt, "dup.file");
 
 	err = dfs_fcreate(pt, "dup.file");
@@ -409,12 +377,6 @@ TEST(file_err, duplicated_files_errors)
 TEST(file_err, empty_name_files_errors)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
-
-	dfs_err err;
-	dfs_partition *pt;
-	char *device = "./test_files_errors.hex";
-
-	dfs_popen(device, &pt);
 
 	err = dfs_fcreate(pt, "");
 	TEST_ASSERT_EQUAL_INT_MESSAGE(DFS_NVAL_PATH, err, "dfs_fcreate accepted an emtpy file name.");
@@ -427,12 +389,6 @@ TEST(file_err, empty_name_files_errors)
 TEST(file_err, invalid_dir_files_errors)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
-
-	dfs_err err;
-	dfs_partition *pt;
-	char *device = "./test_files_errors.hex";
-
-	dfs_popen(device, &pt);
 
 	err = dfs_fcreate(pt, "nodir/test.file");
 	TEST_ASSERT_EQUAL_INT_MESSAGE(DFS_PATH_NOT_FOUND, err, "dfs_fcreate accepted a path to a non-existing directory.");

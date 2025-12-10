@@ -10,6 +10,10 @@
 #include "../src/dfs.h"
 
 
+static dfs_err err;
+static dfs_partition *pt;
+
+
 TEST_GROUP(directory_good);
 
 TEST_SETUP(directory_good)
@@ -20,38 +24,29 @@ TEST_SETUP(directory_good)
 	char *device = "./test_directories_good.hex";
 
 	dfs_pcreate(device, avail_size);
+	dfs_popen(device, &pt);
 }
 
-TEST_TEAR_DOWN(directory_good) { }
+TEST_TEAR_DOWN(directory_good)
+{
+	dfs_pclose(pt);
+}
 
 TEST(directory_good, create_directory)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
-
-	dfs_err err;
-	dfs_partition *pt;
-	char *device = "./test_directories_good.hex";
-
-	dfs_popen(device, &pt);
 
 	err = dfs_dcreate(pt, "test dir");
 	TEST_ASSERT_EQUAL_INT(DFS_SUCCESS, err);
 
 	err = dfs_dcreate(pt, "im at root");
 	TEST_ASSERT_EQUAL_INT(DFS_SUCCESS, err);
-
-	dfs_pclose(pt);
 }
 
 TEST(directory_good, create_directory_nested)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
 
-	dfs_err err;
-	dfs_partition *pt;
-	char *device = "./test_directories_good.hex";
-
-	dfs_popen(device, &pt);
 	dfs_dcreate(pt, "test dir");
 
 	err = dfs_dcreate(pt, "test dir/more test dirs");
@@ -65,8 +60,6 @@ TEST(directory_good, create_directory_nested)
 
 	err = dfs_dcreate(pt, "test dir/more inside/im here");
 	TEST_ASSERT_EQUAL_INT(DFS_SUCCESS, err);
-
-	dfs_pclose(pt);
 }
 
 TEST_GROUP_RUNNER(directory_good)
@@ -93,19 +86,17 @@ TEST_SETUP(directory_err)
 	char *device = "./test_directories_errors.hex";
 
 	dfs_pcreate(device, avail_size);
+	dfs_popen(device, &pt);
 }
 
-TEST_TEAR_DOWN(directory_err) { }
+TEST_TEAR_DOWN(directory_err)
+{
+	dfs_pclose(pt);
+}
 
 TEST(directory_err, null_args_directories_errors)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
-
-	dfs_err err;
-	dfs_partition *pt;
-	char *device = "./test_directories_errors.hex";
-
-	dfs_popen(device, &pt);
 
 	err = dfs_dcreate(pt, NULL);
 	TEST_ASSERT_EQUAL_INT_MESSAGE(DFS_NVAL_ARGS, err, "dfs_dcreate accepted a NULL path.");
@@ -115,11 +106,6 @@ TEST(directory_err, duplicated_directories_errors)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
 
-	dfs_err err;
-	dfs_partition *pt;
-	char *device = "./test_directories_errors.hex";
-
-	dfs_popen(device, &pt);
 	dfs_dcreate(pt, "dup");
 
 	err = dfs_dcreate(pt, "dup");
@@ -130,12 +116,6 @@ TEST(directory_err, empty_name_directories_errors)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
 
-	dfs_err err;
-	dfs_partition *pt;
-	char *device = "./test_directories_errors.hex";
-
-	dfs_popen(device, &pt);
-
 	err = dfs_dcreate(pt, "");
 	TEST_ASSERT_EQUAL_INT_MESSAGE(DFS_NVAL_PATH, err, "dfs_dcreate accepted an empty root directory name.");
 }
@@ -144,11 +124,6 @@ TEST(directory_err, object_inside_files_errors)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
 
-	dfs_err err;
-	dfs_partition *pt;
-	char *device = "./test_directories_errors.hex";
-
-	dfs_popen(device, &pt);
 	dfs_fcreate(pt, "file_not_dir");
 
 	err = dfs_dcreate(pt, "file_not_dir/file");

@@ -13,6 +13,10 @@
 #include "../src/dfs_structures.h"
 
 
+static dfs_err err;
+static dfs_partition *pt;
+
+
 TEST_GROUP(partition_good);
 
 TEST_SETUP(partition_good)
@@ -26,7 +30,6 @@ TEST(partition_good, create_partition)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
 
-	dfs_err err;
 	size_t avail_size = 1 << 20; //1M
 	char *device = "./test_create_partition.hex";
 
@@ -40,13 +43,9 @@ TEST(partition_good, open_close_partition)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
 
-	dfs_err err;
-	dfs_partition *pt;
 	size_t avail_size = 1 << 20; //1M
 	char *device = "./test_open_close_partition.hex";
-
-	err = dfs_pcreate(device, avail_size);
-	TEST_ASSERT_EQUAL_INT_MESSAGE(DFS_SUCCESS, err, "Partition creation failed.");
+	dfs_pcreate(device, avail_size);
 
 	err = dfs_popen(device, &pt);
 	TEST_ASSERT_EQUAL_INT(DFS_SUCCESS, err);
@@ -82,7 +81,6 @@ TEST(partition_err, create_partition_errors)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
 
-	dfs_err err;
 	size_t avail_size = 1 << 20; //1M
 	char *device = "./test_create_partition_erros.hex";
 
@@ -105,8 +103,6 @@ TEST(partition_err, open_close_partition_errors)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
 
-	dfs_err err;
-	dfs_partition *pt;
 	char *device = "./test_open_close_partition_erros.hex";
 	char *nval_device = "./invalid_device.hex";
 
@@ -127,8 +123,6 @@ TEST(partition_err, open_corrupt_partition_errors)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
 
-	dfs_err err;
-	dfs_partition *pt;
 	char *device = "./test_open_corrupt_partition_errors.hex";
 	char zero = 0;
 
