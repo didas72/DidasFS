@@ -75,8 +75,8 @@ val: $(TESTBIN)
 	valgrind $(VAL_FLAGS) $(TESTBIN)
 
 loc:
-	@scc -s lines --no-cocomo --no-gitignore -w --size-unit binary --exclude-dir tests/framework $(DIR_SRC)
-
+	@cloc --hide-rate $(DIR_SRC) 
+	
 doc:
 	doxygen Doxyfile
 
