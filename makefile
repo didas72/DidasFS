@@ -21,7 +21,7 @@ OBJS=$(patsubst $(DIR_SRC)/%.c,$(DIR_OBJ)/%.o,$(SRCS))
 
 TSOBJS=$(patsubst $(DIR_SRC)/%.c,$(DIR_OBJ)/%_test.o,$(SRCS))
 
-TSRCS=$(wildcard $(DIR_TEST)/*.c)
+TSRCS=$(shell find $(DIR_TEST) -type f -name '*.c')
 TOBJS=$(patsubst $(DIR_TEST)/%.c,$(DIR_OBJ)/tests/%.o,$(TSRCS))
 
 

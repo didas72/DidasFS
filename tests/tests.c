@@ -79,6 +79,16 @@ MU_TEST_SUITE(dfs_path_all)
 #pragma endregion
 
 #pragma region Partition functions
+void partition_good_test_setup()
+{
+	mock_setup();
+}
+
+void partition_good_test_teardown()
+{
+
+}
+
 MU_TEST(create_partition)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
@@ -114,7 +124,7 @@ MU_TEST(open_close_partition)
 
 MU_TEST_SUITE(dfs_partition_good)
 {
-	mock_setup();
+	MU_SUITE_CONFIGURE(&partition_good_test_setup, &partition_good_test_teardown);
 
 	MU_RUN_TEST(create_partition);
 	MU_RUN_TEST(open_close_partition);
@@ -122,6 +132,16 @@ MU_TEST_SUITE(dfs_partition_good)
 #pragma endregion
 
 #pragma region Partition function errors
+void partition_err_test_setup()
+{
+	mock_setup();
+}
+
+void partition_err_test_teardown()
+{
+
+}
+
 MU_TEST(create_partition_errors)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
@@ -189,7 +209,7 @@ MU_TEST(open_corrupt_partition_errors)
 
 MU_TEST_SUITE(dfs_partition_errors)
 {
-	mock_setup();
+	MU_SUITE_CONFIGURE(&partition_err_test_setup, &partition_err_test_teardown);
 
 	MU_RUN_TEST(create_partition_errors);
 	MU_RUN_TEST(open_close_partition_errors);
@@ -198,6 +218,21 @@ MU_TEST_SUITE(dfs_partition_errors)
 #pragma endregion
 
 #pragma region Directory functions
+void directory_good_test_setup()
+{
+	mock_setup();
+
+	size_t avail_size = 1 << 20; //1M
+	char *device = "./test_directories_good.hex";
+
+	dfs_pcreate(device, avail_size);
+}
+
+void directory_good_test_teardown()
+{
+
+}
+
 MU_TEST(create_directory)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
@@ -206,7 +241,7 @@ MU_TEST(create_directory)
 	dfs_partition *pt;
 	char *device = "./test_directories_good.hex";
 
-	err = dfs_popen(device, &pt);
+	dfs_popen(device, &pt);
 
 	err = dfs_dcreate(pt, "test dir");
 	mu_assert_int_eq(DFS_SUCCESS, err);
@@ -226,6 +261,7 @@ MU_TEST(create_directory_nested)
 	char *device = "./test_directories_good.hex";
 
 	dfs_popen(device, &pt);
+	dfs_dcreate(pt, "test dir");
 
 	err = dfs_dcreate(pt, "test dir/more test dirs");
 	mu_assert_int_eq(DFS_SUCCESS, err);
@@ -244,19 +280,29 @@ MU_TEST(create_directory_nested)
 
 MU_TEST_SUITE(dfs_directories_good)
 {
-	mock_setup();
-
-	size_t avail_size = 1 << 20; //1M
-	char *device = "./test_directories_good.hex";
-
-	dfs_pcreate(device, avail_size);
-
+	MU_SUITE_CONFIGURE(&directory_good_test_setup, &directory_good_test_teardown);
+	
 	MU_RUN_TEST(create_directory);
 	MU_RUN_TEST(create_directory_nested);
 }
 #pragma endregion
 
 #pragma region Directory function errors
+void directory_err_test_setup()
+{
+	mock_setup();
+
+	size_t avail_size = 1 << 20; //1M
+	char *device = "./test_directories_errors.hex";
+
+	dfs_pcreate(device, avail_size);
+}
+
+void directory_err_test_teardown()
+{
+
+}
+
 MU_TEST(null_args_directories_errors)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
@@ -317,12 +363,7 @@ MU_TEST(object_inside_files_errors)
 
 MU_TEST_SUITE(dfs_directories_errors)
 {
-	mock_setup();
-
-	size_t avail_size = 1 << 20; //1M
-	char *device = "./test_directories_errors.hex";
-
-	dfs_pcreate(device, avail_size);
+	MU_SUITE_CONFIGURE(&directory_err_test_setup, &directory_err_test_teardown);
 
 	MU_RUN_TEST(null_args_directories_errors);
 	MU_RUN_TEST(duplicated_directories_errors);
@@ -332,6 +373,21 @@ MU_TEST_SUITE(dfs_directories_errors)
 #pragma endregion
 
 #pragma region File functions
+void file_good_test_setup()
+{
+	mock_setup();
+
+	size_t avail_size = 1 << 20; //1M
+	char *device = "./test_files_good.hex";
+
+	dfs_pcreate(device, avail_size);
+}
+
+void file_good_test_teardown()
+{
+
+}
+
 MU_TEST(create_file)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
@@ -598,12 +654,7 @@ MU_TEST(read_write_align_file)
 
 MU_TEST_SUITE(dfs_files_good)
 {
-	mock_setup();
-
-	size_t avail_size = 1 << 20; //1M
-	char *device = "./test_files_good.hex";
-
-	dfs_pcreate(device, avail_size);
+	MU_SUITE_CONFIGURE(&file_good_test_setup, &file_good_test_teardown);
 
 	MU_RUN_TEST(create_file);
 	MU_RUN_TEST(open_close_file);
@@ -615,6 +666,21 @@ MU_TEST_SUITE(dfs_files_good)
 #pragma endregion
 
 #pragma region File function errors
+void file_err_test_setup()
+{
+	mock_setup();
+	
+	size_t avail_size = 1 << 20; //1M
+	char *device = "./test_files_errors.hex";
+
+	dfs_pcreate(device, avail_size);
+}
+
+void file_err_test_teardown()
+{
+
+}
+
 MU_TEST(null_args_files_errors)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
@@ -737,12 +803,7 @@ MU_TEST(invalid_dir_files_errors)
 
 MU_TEST_SUITE(dfs_files_errors)
 {
-	mock_setup();
-	
-	size_t avail_size = 1 << 20; //1M
-	char *device = "./test_files_errors.hex";
-
-	dfs_pcreate(device, avail_size);
+	MU_SUITE_CONFIGURE(&file_err_test_setup, &file_err_test_teardown);
 
 	MU_RUN_TEST(null_args_files_errors);
 	MU_RUN_TEST(duplicated_files_errors);
@@ -752,6 +813,21 @@ MU_TEST_SUITE(dfs_files_errors)
 #pragma endregion
 
 #pragma region Management functions
+void management_good_test_setup()
+{
+	mock_setup();
+	
+	size_t avail_size = 1 << 20; //1M
+	char *device = "./test_management_good.hex";
+
+	dfs_pcreate(device, avail_size);
+}
+
+void management_good_test_teardown()
+{
+
+}
+
 MU_TEST(list_entries)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
@@ -803,18 +879,28 @@ MU_TEST(list_entries)
 
 MU_TEST_SUITE(dfs_management_good)
 {
-	mock_setup();
-	
-	size_t avail_size = 1 << 20; //1M
-	char *device = "./test_management_good.hex";
-
-	dfs_pcreate(device, avail_size);
+	MU_SUITE_CONFIGURE(&management_good_test_setup, &management_good_test_teardown);
 
 	MU_RUN_TEST(list_entries);
 }
 #pragma endregion
 
 #pragma region Management function errors
+void management_err_test_setup()
+{
+	mock_setup();
+	
+	size_t avail_size = 1 << 20; //1M
+	char *device = "./test_management_errors.hex";
+
+	dfs_pcreate(device, avail_size);
+}
+
+void management_err_test_teardown()
+{
+
+}
+
 MU_TEST(list_entries_errors)
 {
 	fprintf(stderr, "\nEntering %s\n\n", __func__);
@@ -841,12 +927,7 @@ MU_TEST(list_entries_errors)
 
 MU_TEST_SUITE(dfs_management_errors)
 {
-	mock_setup();
-	
-	size_t avail_size = 1 << 20; //1M
-	char *device = "./test_management_errors.hex";
-
-	dfs_pcreate(device, avail_size);
+	MU_SUITE_CONFIGURE(&management_err_test_setup, &management_err_test_teardown);
 
 	MU_RUN_TEST(list_entries_errors);
 }
