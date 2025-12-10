@@ -6,6 +6,7 @@
 
 #include "framework/minunit.h"
 #include "mocks.h"
+#include "mock_utils.h"
 #include "mocks_interface.h"
 
 #include "../src/dfs.h"
@@ -17,21 +18,6 @@
 
 #pragma GCC diagnostic ignored "-Wformat-truncation"
 
-#pragma region Mock setup
-void mock_init()
-{
-#ifdef MOCK_DEVICE
-	ram_reset_files(0);
-#endif
-}
-
-void mock_setup()
-{
-#ifdef MOCK_DEVICE
-	ram_reset_files(1);
-#endif
-}
-#pragma endregion
 
 #pragma region Path functions
 MU_TEST(combine)
